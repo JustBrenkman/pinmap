@@ -232,7 +232,9 @@ mod ron {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Bias, Mux, PinAsg, PinDef};
+    #[cfg(feature = "ron")]
+    use crate::{Bias, PinAsg};
+    use crate::{Mux, PinDef};
 
     #[cfg(feature = "json")]
     const PINDEF_JSON: &str = r#"{
