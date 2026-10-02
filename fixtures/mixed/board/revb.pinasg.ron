@@ -1,0 +1,77 @@
+#![enable(implicit_some)]
+(
+    schema: "pinmap/v1",
+    kind: pinasg,
+    device: "../devices/stm32f407vg",
+    target: (
+        package: "LQFP100",
+        refdes: "U1",
+    ),
+    imports: [
+        "usb",
+    ],
+    peripherals: {
+        "SPI1": (
+            signals: {
+                "SCK": (
+                    pin: "PA5",
+                    net: "IMU_SCK",
+                    speed: very_high,
+                ),
+                "MISO": (
+                    pin: "PA6",
+                    net: "IMU_MISO",
+                    speed: very_high,
+                ),
+                "MOSI": (
+                    pin: "PA7",
+                    net: "IMU_MOSI",
+                    speed: very_high,
+                ),
+            },
+            props: {
+                "spi-max-frequency": "<8000000>",
+            },
+            note: "IMU bus; CS is a GPIO on PA4",
+        ),
+        "USART2": (
+            signals: {
+                "TX": (
+                    pin: "PA2",
+                    net: "UART_TX_DEBUG",
+                ),
+                "RX": (
+                    pin: "PA3",
+                    net: "UART_RX_DEBUG",
+                    bias: pull_up,
+                ),
+            },
+            props: {
+                "current-speed": "<115200>",
+            },
+        ),
+    },
+    pins: {
+        "PA4": (
+            mode: gpio_out,
+            initial: high,
+            net: "IMU_CS",
+            note: "SPI1 CS, active low",
+        ),
+        "PB12": (
+            mode: gpio_in,
+            bias: pull_up,
+            net: "BTN_USER",
+        ),
+        "PA13": (
+            mode: reserved,
+            net: "SWDIO",
+            note: "SWD",
+        ),
+        "PA14": (
+            mode: reserved,
+            net: "SWCLK",
+            note: "SWD",
+        ),
+    },
+)

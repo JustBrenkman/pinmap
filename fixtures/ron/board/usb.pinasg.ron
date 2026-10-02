@@ -1,0 +1,27 @@
+#![enable(implicit_some)]
+(
+    schema: "pinmap/v1",
+    kind: pinasg,
+    device: "../devices/stm32f407vg",
+    target: (
+        package: "LQFP100",
+        refdes: "U1",
+    ),
+    peripherals: {
+        "OTG_FS": (
+            signals: {
+                "DM": (
+                    pin: "PA11",
+                    net: "USB_D_N",
+                    bias: floating,
+                ),
+                "DP": (
+                    pin: "PA12",
+                    net: "USB_D_P",
+                    bias: floating,
+                ),
+            },
+            note: "USB full-speed device port",
+        ),
+    },
+)

@@ -1,0 +1,233 @@
+#![enable(implicit_some)]
+(
+    schema: "pinmap/v1",
+    kind: pindef,
+    meta: (
+        generated: true,
+    ),
+    device: (
+        name: "STM32F407VGTx",
+        vendor: "st",
+        family: "stm32f4",
+    ),
+    packages: {
+        "LQFP100": {
+            "PA2": "25",
+            "PA3": "26",
+            "PA4": "29",
+            "PA5": "30",
+            "PA6": "31",
+            "PA7": "32",
+            "PB12": "51",
+            "PA11": "70",
+            "PA12": "71",
+            "PA13": "72",
+            "PA14": "76",
+        },
+    },
+    pins: {
+        "PA2": (
+            port: (
+                bank: "A",
+                index: 2,
+            ),
+            functions: [
+                (
+                    periph: "USART2",
+                    name: "TX",
+                    mux: af(7),
+                ),
+                (
+                    periph: "TIM2",
+                    name: "CH3",
+                    mux: af(1),
+                ),
+                (
+                    periph: "ADC1",
+                    name: "IN2",
+                    mux: analog,
+                ),
+            ],
+        ),
+        "PA3": (
+            port: (
+                bank: "A",
+                index: 3,
+            ),
+            functions: [
+                (
+                    periph: "USART2",
+                    name: "RX",
+                    mux: af(7),
+                ),
+                (
+                    periph: "TIM2",
+                    name: "CH4",
+                    mux: af(1),
+                ),
+                (
+                    periph: "ADC1",
+                    name: "IN3",
+                    mux: analog,
+                ),
+            ],
+        ),
+        "PA4": (
+            port: (
+                bank: "A",
+                index: 4,
+            ),
+            functions: [
+                (
+                    periph: "SPI1",
+                    name: "NSS",
+                    mux: af(5),
+                ),
+                (
+                    periph: "DAC",
+                    name: "OUT1",
+                    mux: analog,
+                ),
+            ],
+        ),
+        "PA5": (
+            port: (
+                bank: "A",
+                index: 5,
+            ),
+            functions: [
+                (
+                    periph: "SPI1",
+                    name: "SCK",
+                    mux: af(5),
+                ),
+                (
+                    periph: "TIM2",
+                    name: "CH1",
+                    mux: af(1),
+                ),
+                (
+                    periph: "DAC",
+                    name: "OUT2",
+                    mux: analog,
+                ),
+            ],
+        ),
+        "PA6": (
+            port: (
+                bank: "A",
+                index: 6,
+            ),
+            functions: [
+                (
+                    periph: "SPI1",
+                    name: "MISO",
+                    mux: af(5),
+                ),
+                (
+                    periph: "TIM3",
+                    name: "CH1",
+                    mux: af(2),
+                ),
+            ],
+        ),
+        "PA7": (
+            port: (
+                bank: "A",
+                index: 7,
+            ),
+            functions: [
+                (
+                    periph: "SPI1",
+                    name: "MOSI",
+                    mux: af(5),
+                ),
+                (
+                    periph: "TIM3",
+                    name: "CH2",
+                    mux: af(2),
+                ),
+            ],
+        ),
+        "PA11": (
+            port: (
+                bank: "A",
+                index: 11,
+            ),
+            functions: [
+                (
+                    periph: "OTG_FS",
+                    name: "DM",
+                    mux: af(10),
+                ),
+                (
+                    periph: "USART1",
+                    name: "CTS",
+                    mux: af(7),
+                ),
+            ],
+        ),
+        "PA12": (
+            port: (
+                bank: "A",
+                index: 12,
+            ),
+            functions: [
+                (
+                    periph: "OTG_FS",
+                    name: "DP",
+                    mux: af(10),
+                ),
+                (
+                    periph: "USART1",
+                    name: "RTS",
+                    mux: af(7),
+                ),
+            ],
+        ),
+        "PA13": (
+            port: (
+                bank: "A",
+                index: 13,
+            ),
+            functions: [
+                (
+                    periph: "SYS",
+                    name: "JTMS-SWDIO",
+                    mux: af(0),
+                ),
+            ],
+        ),
+        "PA14": (
+            port: (
+                bank: "A",
+                index: 14,
+            ),
+            functions: [
+                (
+                    periph: "SYS",
+                    name: "JTCK-SWCLK",
+                    mux: af(0),
+                ),
+            ],
+        ),
+        "PB12": (
+            port: (
+                bank: "B",
+                index: 12,
+            ),
+            functions: [
+                (
+                    periph: "SPI2",
+                    name: "NSS",
+                    mux: af(5),
+                ),
+                (
+                    periph: "I2C2",
+                    name: "SMBA",
+                    mux: af(4),
+                ),
+            ],
+        ),
+    },
+)

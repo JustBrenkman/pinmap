@@ -8,6 +8,14 @@
 //! A file is named `<name>.<kind>.<format>`, for example `revb.pinasg.ron`.
 //! [`classify`] reads the kind and format from the name.
 //!
+//! ```no_run
+//! use pinmap_model::{PinAsg, read, write};
+//!
+//! let asg: PinAsg = read("board/revb.pinasg.ron")?;
+//! write("board/revb.pinasg.json", &asg)?;
+//! # Ok::<(), pinmap_model::ModelError>(())
+//! ```
+//!
 //! This crate holds the types and their file representation only. Loading a
 //! project, following imports, and validating assignments live in `pinmap-core`.
 
