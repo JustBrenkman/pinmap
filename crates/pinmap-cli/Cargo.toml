@@ -1,0 +1,22 @@
+[package]
+name = "pinmap-cli"
+description = "Command-line tool for managing microcontroller pin assignments"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+clap.workspace = true
+pinmap-core.workspace = true
+pinmap-emit.workspace = true
+pinmap-import.workspace = true
+pinmap-model.workspace = true
+
+[[bin]]
+name = "pinmap"
+path = "src/main.rs"

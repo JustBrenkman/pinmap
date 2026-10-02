@@ -1,0 +1,14 @@
+[package]
+name = "pinmap-core"
+description = "Loading, resolution, checks, and the importer/emitter traits for pinmap"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+pinmap-model.workspace = true

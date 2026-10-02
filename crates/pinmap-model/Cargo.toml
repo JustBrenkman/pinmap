@@ -1,0 +1,26 @@
+[package]
+name = "pinmap-model"
+description = "Document types and JSON/RON serialization for pinmap pin definitions and assignments"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[features]
+default = ["json", "ron"]
+json = ["dep:serde_json"]
+ron = ["dep:ron"]
+
+[dependencies]
+indexmap.workspace = true
+ron = { workspace = true, optional = true }
+serde.workspace = true
+serde_json = { workspace = true, optional = true }
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
