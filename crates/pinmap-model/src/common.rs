@@ -45,6 +45,12 @@ impl PinId {
     }
 }
 
+impl std::borrow::Borrow<str> for PinId {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
 impl From<&str> for PinId {
     fn from(name: &str) -> Self {
         Self::new(name)
