@@ -17,6 +17,7 @@ mod io;
 mod kind;
 mod pinasg;
 mod pindef;
+mod reference;
 
 pub use common::{Bias, Drive, Level, Mode, PinId, SCHEMA_V1, SchemaVersion, Speed};
 pub use error::ModelError;
@@ -24,3 +25,4 @@ pub use io::{Document, from_str, read, to_string, write};
 pub use kind::{DocKind, Format, classify};
 pub use pinasg::{PeriphAsg, PinAsg, PinAsgEntry, SignalAsg, Target};
 pub use pindef::{Device, Function, Meta, Mux, Pin, PinDef, Port};
+pub use reference::resolve_ref;

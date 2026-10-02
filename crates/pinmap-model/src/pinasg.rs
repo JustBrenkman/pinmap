@@ -11,7 +11,7 @@ use crate::{Bias, DocKind, Drive, Level, Mode, PinId, SchemaVersion, Speed};
 pub struct PinAsg {
     pub schema: SchemaVersion,
     pub kind: DocKind,
-    /// Reference to the pindef, as a path or a stem.
+    /// Reference to the pindef, as a path or a stem. See [`crate::resolve_ref`].
     pub device: PathBuf,
     pub target: Target,
     /// References to other pinasg files, merged by union.
