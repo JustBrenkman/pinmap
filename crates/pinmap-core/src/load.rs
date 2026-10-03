@@ -10,13 +10,19 @@ use crate::Diagnostic;
 
 #[derive(Debug, Clone)]
 pub struct LoadedPinDef {
+    /// The path as shown to the user, with `.` and `..` folded.
     pub path: PathBuf,
+    /// Where the file is read from and written to: the canonical path.
+    pub disk_path: PathBuf,
     pub doc: PinDef,
 }
 
 #[derive(Debug, Clone)]
 pub struct LoadedPinAsg {
+    /// The path as shown to the user, with `.` and `..` folded.
     pub path: PathBuf,
+    /// Where the file is read from and written to: the canonical path.
+    pub disk_path: PathBuf,
     pub doc: PinAsg,
 }
 
@@ -33,11 +39,11 @@ pub struct Project {
 /// Loads a root pinasg, its pindef, and its imports. Problems become
 /// diagnostics, and loading carries on with whatever could be read.
 pub fn load(root: &Path) -> (Project, Vec<Diagnostic>) {
-    let root = normalize_path(root);
+    let shown = normalize_path(root);
     let mut loader = Loader::default();
-    loader.visit(&root, None);
+    loader.visit(&shown, root, None);
     let project = Project {
-        root,
+        root: shown,
         device: loader.device,
         files: loader.files,
     };
@@ -63,16 +69,17 @@ struct Loader {
 }
 
 impl Loader {
-    /// `referrer` is the file and logical path that imported `path`.
-    fn visit(&mut self, path: &Path, referrer: Option<(&Path, String)>) {
-        let key = fs::canonicalize(path).ok();
+    /// Visits a pinasg shown as `shown` and found on disk at `real`.
+    /// `referrer` is the file and logical path that imported it.
+    fn visit(&mut self, shown: &Path, real: &Path, referrer: Option<(&Path, String)>) {
+        let key = fs::canonicalize(real).ok();
         if let Some(key) = &key {
             if let Some(start) = self.stack.iter().position(|(k, _)| k == key) {
                 let mut chain: Vec<String> = self.stack[start..]
                     .iter()
                     .map(|(_, shown)| shown.display().to_string())
                     .collect();
-                chain.push(path.display().to_string());
+                chain.push(shown.display().to_string());
                 let message = format!("import cycle: {}", chain.join(" -> "));
                 let mut diag = Diagnostic::error("PM0107", message);
                 if let Some((file, at)) = referrer {
@@ -86,58 +93,73 @@ impl Loader {
             }
         }
 
-        let doc: PinAsg = match read(path) {
+        let disk_path = key.unwrap_or_else(|| real.to_path_buf());
+        let doc: PinAsg = match read(&disk_path) {
             Ok(doc) => doc,
             Err(err) => {
-                self.diagnostics.push(Diagnostic::from_model(&err));
+                self.diagnostics
+                    .push(Diagnostic::from_model(&err).in_file(shown));
                 return;
             }
         };
-        let dir = path.parent().unwrap_or(Path::new("")).to_path_buf();
+        let dir = real.parent().unwrap_or(Path::new("")).to_path_buf();
 
+        let is_root = self.root.is_none();
         let device = match resolve_ref(&dir, &doc.device, DocKind::Pindef) {
-            Ok(found) => Some(normalize_path(&found)),
+            Ok(found) => Some(found),
             Err(err) => {
-                self.diagnostics
-                    .push(reference_error(&err, path, "device".into()));
+                // A missing pindef is reported once, at the root.
+                let root_has_device = self.root.as_ref().is_some_and(|r| r.device.is_some());
+                if is_root || root_has_device {
+                    self.diagnostics
+                        .push(reference_error(&err, shown, "device".into()));
+                }
                 None
             }
         };
-        if self.root.is_none() {
+        if is_root {
             self.root = Some(RootInfo {
                 device: device.clone(),
                 target: doc.target.clone(),
             });
             if let Some(device) = device {
-                self.load_device(device);
+                self.load_device(&device);
             }
         } else {
-            self.check_matches_root(path, device.as_deref(), &doc.target);
+            self.check_matches_root(shown, device.as_deref(), &doc.target);
         }
 
         let imports = doc.imports.clone();
         self.files.push(LoadedPinAsg {
-            path: path.to_path_buf(),
+            path: shown.to_path_buf(),
+            disk_path: disk_path.clone(),
             doc,
         });
-        self.stack.push((
-            key.unwrap_or_else(|| path.to_path_buf()),
-            path.to_path_buf(),
-        ));
+        self.stack.push((disk_path, shown.to_path_buf()));
         for (i, import) in imports.iter().enumerate() {
             let at = format!("imports[{i}]");
             match resolve_ref(&dir, import, DocKind::Pinasg) {
-                Ok(found) => self.visit(&normalize_path(&found), Some((path, at))),
-                Err(err) => self.diagnostics.push(reference_error(&err, path, at)),
+                Ok(found) => self.visit(&normalize_path(&found), &found, Some((shown, at))),
+                Err(err) => self.diagnostics.push(reference_error(&err, shown, at)),
             }
         }
         self.stack.pop();
     }
 
-    fn load_device(&mut self, path: PathBuf) {
-        match read::<PinDef>(&path) {
-            Ok(doc) => self.device = Some(LoadedPinDef { path, doc }),
-            Err(err) => self.diagnostics.push(Diagnostic::from_model(&err)),
+    fn load_device(&mut self, real: &Path) {
+        let shown = normalize_path(real);
+        let disk_path = fs::canonicalize(real).unwrap_or_else(|_| real.to_path_buf());
+        match read::<PinDef>(&disk_path) {
+            Ok(doc) => {
+                self.device = Some(LoadedPinDef {
+                    path: shown,
+                    disk_path,
+                    doc,
+                })
+            }
+            Err(err) => self
+                .diagnostics
+                .push(Diagnostic::from_model(&err).in_file(shown)),
         }
     }
 
@@ -148,8 +170,8 @@ impl Loader {
         {
             let message = format!(
                 "device is {}, but the root uses {}",
-                mine.display(),
-                theirs.display()
+                normalize_path(mine).display(),
+                normalize_path(theirs).display()
             );
             self.diagnostics.push(
                 Diagnostic::error("PM0109", message)

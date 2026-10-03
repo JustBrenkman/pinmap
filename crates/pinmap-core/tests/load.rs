@@ -153,3 +153,53 @@ fn reference_errors_show_normalized_paths() {
     let (_, tried) = diags[0].message.split_once("looked for").unwrap();
     assert!(!tried.contains(".."), "{}", diags[0].message);
 }
+
+#[cfg(unix)]
+#[test]
+fn files_are_read_through_symlinks_not_lexical_paths() {
+    let dir = tempfile::tempdir().unwrap();
+    let real = dir.path().join("a/b");
+    fs::create_dir_all(&real).unwrap();
+    fs::create_dir_all(dir.path().join("a/dev")).unwrap();
+    fs::copy(
+        fixtures().join("json/devices/stm32f407vg.pindef.json"),
+        dir.path().join("a/dev/chip.pindef.json"),
+    )
+    .unwrap();
+    fs::write(
+        real.join("board.pinasg.json"),
+        r#"{"schema": "pinmap/v1", "kind": "pinasg", "device": "../dev/chip",
+            "target": {"package": "LQFP100"}}"#,
+    )
+    .unwrap();
+    std::os::unix::fs::symlink(&real, dir.path().join("link")).unwrap();
+    // link/../dev is a/dev to the OS, but dev/ lexically.
+    let (project, diags) = load(&dir.path().join("link/board.pinasg.json"));
+    assert!(diags.is_empty(), "{diags:?}");
+    let device = project.device.unwrap();
+    assert!(
+        device.disk_path.ends_with("a/dev/chip.pindef.json"),
+        "{}",
+        device.disk_path.display()
+    );
+    assert!(
+        project.files[0]
+            .disk_path
+            .ends_with("a/b/board.pinasg.json")
+    );
+}
+
+#[test]
+fn missing_pindef_is_reported_once() {
+    let dir = tempfile::tempdir().unwrap();
+    let asg = |imports: &str| {
+        format!(
+            r#"{{"schema": "pinmap/v1", "kind": "pinasg", "device": "nope",
+                "target": {{"package": "P"}}, "imports": [{imports}]}}"#
+        )
+    };
+    fs::write(dir.path().join("board.pinasg.json"), asg(r#""usb""#)).unwrap();
+    fs::write(dir.path().join("usb.pinasg.json"), asg("")).unwrap();
+    let (_, diags) = load(&dir.path().join("board.pinasg.json"));
+    assert_eq!(summary(&diags), ["PM0005 board.pinasg.json device"]);
+}
