@@ -19,6 +19,7 @@
 //! This crate holds the types and their file representation only. Loading a
 //! project, following imports, and validating assignments live in `pinmap-core`.
 
+mod comments;
 mod common;
 mod error;
 mod io;
@@ -29,6 +30,7 @@ mod reference;
 #[cfg(feature = "schema")]
 mod schema;
 
+pub use comments::has_comments;
 pub use common::{Bias, Drive, Level, Mode, PinId, SCHEMA_V1, SchemaVersion, Speed};
 pub use error::ModelError;
 pub use io::{AnyDoc, Document, from_str, read, read_any, to_string, write};
