@@ -86,13 +86,31 @@ pub fn read<T: Document>(path: impl AsRef<Path>) -> Result<T, ModelError> {
 /// format and must name the kind that `T` represents.
 pub fn write<T: Document>(path: impl AsRef<Path>, doc: &T) -> Result<(), ModelError> {
     let path = path.as_ref();
-    let save = || {
-        let format = classify_as::<T>(path)?;
-        let text = to_string(doc, format)?;
-        fs::write(path, text)?;
+    let render = || to_string(doc, classify_as::<T>(path)?);
+    let text = render().map_err(|err| at(err, path))?;
+    write_atomic(path, &text)
+}
+
+/// Writes `contents` to `path` through a temporary file in the same
+/// directory and a rename, so a reader never sees a half-written file.
+pub fn write_atomic(path: impl AsRef<Path>, contents: &str) -> Result<(), ModelError> {
+    let path = path.as_ref();
+    let save = || -> Result<(), ModelError> {
+        let name = path.file_name().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::InvalidInput, "path has no file name")
+        })?;
+        let mut temp_name = std::ffi::OsString::from(".");
+        temp_name.push(name);
+        temp_name.push(".pinmap-tmp");
+        let temp = path.with_file_name(temp_name);
+        fs::write(&temp, contents)?;
+        if let Err(err) = fs::rename(&temp, path) {
+            let _ = fs::remove_file(&temp);
+            return Err(err.into());
+        }
         Ok(())
     };
-    save().map_err(|err| at(err, path))
+    save().map_err(|err| err.at(path))
 }
 
 /// Either kind of document, for code that handles both, such as conversion.
@@ -275,6 +293,36 @@ mod ron {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn write_atomic_replaces_contents_and_leaves_no_temp_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("x.pinasg.json");
+        fs::write(&path, "old").unwrap();
+        write_atomic(&path, "new").unwrap();
+        assert_eq!(fs::read_to_string(&path).unwrap(), "new");
+        let names: Vec<_> = fs::read_dir(dir.path())
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect();
+        assert_eq!(names, ["x.pinasg.json"]);
+    }
+
+    #[test]
+    fn failed_rename_leaves_no_temp_file() {
+        let dir = tempfile::tempdir().unwrap();
+        // A directory where the file should go makes the rename fail.
+        let path = dir.path().join("x.pinasg.json");
+        fs::create_dir(&path).unwrap();
+        fs::write(path.join("keep"), "").unwrap();
+        let err = write_atomic(&path, "new").unwrap_err();
+        assert_eq!(err.code(), "PM0008");
+        let names: Vec<_> = fs::read_dir(dir.path())
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect();
+        assert_eq!(names, ["x.pinasg.json"]);
+    }
     #[cfg(feature = "ron")]
     use crate::{Bias, PinAsg};
     use crate::{Mux, PinDef};

@@ -63,8 +63,7 @@ pub fn run(ctx: &Ctx, args: &ConvertArgs) -> anyhow::Result<Exit> {
     }
     let doc = AnyDoc::from_str(&text, in_kind, in_format)
         .map_err(|e| anyhow!("{}: {e}", input.display()))?;
-    fs::write(output, doc.to_string(out_format)?)
-        .with_context(|| format!("cannot write {}", output.display()))?;
+    pinmap_model::write_atomic(output, &doc.to_string(out_format)?)?;
     if args.rm_source {
         fs::remove_file(input).with_context(|| format!("cannot remove {}", input.display()))?;
     }

@@ -127,7 +127,7 @@ fn try_format(path: &Path, check: bool) -> anyhow::Result<FmtStatus> {
     } else if check {
         FmtStatus::WouldChange
     } else {
-        fs::write(path, canonical)?;
+        pinmap_model::write_atomic(path, &canonical)?;
         FmtStatus::Reformatted
     })
 }
