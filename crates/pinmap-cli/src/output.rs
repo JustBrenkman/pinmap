@@ -96,11 +96,3 @@ pub fn render_diagnostic(d: &Diagnostic, out: &mut String) {
         let _ = writeln!(out, "{indent}hint: {hint}");
     }
 }
-
-/// `key=value` for each setting that is present.
-pub fn config<const N: usize>(items: [(&str, Option<&str>); N]) -> Vec<String> {
-    items
-        .into_iter()
-        .filter_map(|(key, value)| value.map(|v| format!("{key}={v}")))
-        .collect()
-}

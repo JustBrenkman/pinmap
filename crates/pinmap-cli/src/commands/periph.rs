@@ -2,11 +2,11 @@ use std::fmt::Write as _;
 
 use anyhow::bail;
 use indexmap::{IndexMap, IndexSet};
-use pinmap_core::{Origin, Resolved, suggest};
-use pinmap_model::{Bias, Drive, Mux, PinId, Speed};
+use pinmap_core::{Origin, Resolved, Usage, suggest};
+use pinmap_model::{Mux, PinId};
 use serde::Serialize;
 
-use crate::output::{Ctx, Exit, Render, config, dash, table};
+use crate::output::{Ctx, Exit, Render, dash, table};
 use crate::project;
 
 #[derive(Serialize)]
@@ -175,11 +175,11 @@ pub fn show(ctx: &Ctx, name: &str) -> anyhow::Result<Exit> {
                     .collect(),
                 config: resolved
                     .map(|s| {
-                        config([
-                            ("bias", s.asg.bias.map(Bias::as_str)),
-                            ("drive", s.asg.drive.map(Drive::as_str)),
-                            ("speed", s.asg.speed.map(Speed::as_str)),
-                        ])
+                        let usage = Usage::Signal {
+                            periph: name.to_owned(),
+                            signal: signal.to_owned(),
+                        };
+                        r.settings(&s.asg.pin, &usage)
                     })
                     .unwrap_or_default(),
             }

@@ -2,7 +2,9 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 
 use indexmap::{IndexMap, IndexSet};
-use pinmap_model::{Function, Mode, Mux, PinAsgEntry, PinDef, PinId, SignalAsg, Target};
+use pinmap_model::{
+    Bias, Drive, Function, Level, Mode, Mux, PinAsgEntry, PinDef, PinId, SignalAsg, Speed, Target,
+};
 use serde::Serialize;
 
 use crate::{Diagnostic, Project, load, rules, sort};
@@ -92,6 +94,32 @@ impl Resolved {
             Usage::Signal { periph, signal } => &self.peripherals[periph].signals[signal].origin,
             Usage::Pin { .. } => &self.pins[pin].origin,
         }
+    }
+
+    /// The electrical settings of one use as `key=value` strings, in a fixed
+    /// order: bias, drive, speed for signals; initial, bias for pin entries.
+    pub fn settings(&self, pin: &PinId, usage: &Usage) -> Vec<String> {
+        let pairs: Vec<(&str, Option<&str>)> = match usage {
+            Usage::Signal { periph, signal } => {
+                let a = &self.peripherals[periph].signals[signal].asg;
+                vec![
+                    ("bias", a.bias.map(Bias::as_str)),
+                    ("drive", a.drive.map(Drive::as_str)),
+                    ("speed", a.speed.map(Speed::as_str)),
+                ]
+            }
+            Usage::Pin { .. } => {
+                let a = &self.pins[pin].asg;
+                vec![
+                    ("initial", a.initial.map(Level::as_str)),
+                    ("bias", a.bias.map(Bias::as_str)),
+                ]
+            }
+        };
+        pairs
+            .into_iter()
+            .filter_map(|(key, value)| value.map(|v| format!("{key}={v}")))
+            .collect()
     }
 
     /// Peripheral names that appear in the pindef, in first-seen order.

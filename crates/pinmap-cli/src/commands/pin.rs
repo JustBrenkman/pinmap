@@ -3,11 +3,11 @@ use std::fmt::Write as _;
 use anyhow::{anyhow, bail};
 use indexmap::IndexSet;
 use pinmap_core::{Origin, Resolved, Usage, suggest};
-use pinmap_model::{Bias, Drive, Level, Mux, Pin, PinId, Port, Speed};
+use pinmap_model::{Mux, Pin, PinId, Port};
 use serde::Serialize;
 
 use crate::args::PinListArgs;
-use crate::output::{Ctx, Exit, Render, config, dash, table};
+use crate::output::{Ctx, Exit, Render, dash, table};
 use crate::project;
 
 #[derive(Serialize)]
@@ -241,11 +241,7 @@ fn use_detail(r: &Resolved, pin: &PinId, usage: &Usage) -> UseDetail {
     match usage {
         Usage::Signal { periph, signal } => {
             let s = &r.peripherals[periph].signals[signal];
-            let config = config([
-                ("bias", s.asg.bias.map(Bias::as_str)),
-                ("drive", s.asg.drive.map(Drive::as_str)),
-                ("speed", s.asg.speed.map(Speed::as_str)),
-            ]);
+            let config = r.settings(pin, usage);
             UseDetail {
                 usage: usage.clone(),
                 net: s.asg.net.clone(),
@@ -256,10 +252,7 @@ fn use_detail(r: &Resolved, pin: &PinId, usage: &Usage) -> UseDetail {
         }
         Usage::Pin { .. } => {
             let p = &r.pins[pin];
-            let config = config([
-                ("initial", p.asg.initial.map(Level::as_str)),
-                ("bias", p.asg.bias.map(Bias::as_str)),
-            ]);
+            let config = r.settings(pin, usage);
             UseDetail {
                 usage: usage.clone(),
                 net: p.asg.net.clone(),

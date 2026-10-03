@@ -93,3 +93,25 @@ fn no_resolved_view_without_a_pindef() {
     assert!(resolved.is_none());
     assert_eq!(diags[0].code, "PM0008");
 }
+
+#[test]
+fn settings_describe_each_use() {
+    let (resolved, _) = open(&fixtures().join("json/board/revb.pinasg.json"));
+    let r = resolved.unwrap();
+    let signal = |periph: &str, signal: &str| Usage::Signal {
+        periph: periph.into(),
+        signal: signal.into(),
+    };
+    assert_eq!(
+        r.settings(&"PA5".into(), &signal("SPI1", "SCK")),
+        ["speed=very_high"]
+    );
+    assert_eq!(
+        r.settings(&"PA3".into(), &signal("USART2", "RX")),
+        ["bias=pull_up"]
+    );
+    let pin = Usage::Pin {
+        mode: Mode::GpioOut,
+    };
+    assert_eq!(r.settings(&"PA4".into(), &pin), ["initial=high"]);
+}
