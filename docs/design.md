@@ -278,16 +278,21 @@ pub struct EmitOutput { pub files: Vec<OutputFile>, pub unsupported: Vec<Diagnos
 
 ### Checks
 
-| Check | Severity |
-|---|---|
-| Unknown pin or peripheral versus the pindef | error |
-| Pin has no function matching `(periph, signal)` | error |
-| Pin used by two signals, or by both a signal and a `pins` entry | error |
-| Pin has no pad for `target.package` | error |
-| Import missing, cyclic, or duplicate key across files | error |
-| Kind/extension mismatch, ambiguous stem | error |
-| Same `net` label on two different pins | info |
-| Pin has a `net` but no function or mode | warn |
+| Code | Check | Severity |
+|---|---|---|
+| PM0101 | Pin not in the pindef | error |
+| PM0102 | Pin has no function matching `(periph, signal)` | error |
+| PM0103 | Pin used by two signals, or by both a signal and a `pins` entry | error |
+| PM0104 | Pin has no pad for `target.package` | error |
+| PM0105 | `target.package` not in the pindef | error |
+| PM0106 | Peripheral has no functions in the pindef | error |
+| PM0107 | Import cycle | error |
+| PM0108 | Same peripheral or pin key defined in two files | error |
+| PM0109 | Import's device or target differs from the root's | error |
+| PM0110 | Same `net` label on two different pins | info |
+| PM0001–PM0008 | File name, kind/extension mismatch, schema version, ambiguous or missing reference, parse and I/O errors | error |
+
+Every `pinasg`, including imported ones, declares `device` and `target`, and an import must match the root's. A "net but no function or mode" warning was planned but dropped: every `pins` entry requires a `mode`, and every signal is already checked against the pindef, so the v1 types cannot express it.
 
 Diagnostics have stable codes (`PM0102` etc.), name the file and path, and suggest a follow-up command:
 
@@ -351,7 +356,7 @@ load project -> apply change -> re-resolve whole project -> run check
 - Pre-existing errors do not block an unrelated edit. `--allow-errors` overrides.
 - `--dry-run` prints a diff and the diagnostic changes and writes nothing.
 - Generated files (`meta.generated: true` pindefs) are refused with "re-run import".
-- New entries go to the `primary` pinasg from `pinmap.toml`, or `--file`. Edits to existing entries go to the file that defines them.
+- New entries go to the root pinasg, or `--file`. Edits to existing entries go to the file that defines them.
 - **Comments:** JSON has none, so editing it never loses any. For RON, the writer scans for comments first and refuses unless `--allow-comment-loss` is given. Use JSON for files that the CLI or an AI edits heavily and RON for files you hand-edit and annotate. `note` fields are real data and survive in both.
 
 ---
@@ -360,7 +365,7 @@ load project -> apply change -> re-resolve whole project -> run check
 
 ```
 # project and import
-pinmap init [dir]
+pinmap init [dir]                                 # phase 2, with pinmap.toml
 pinmap import --from stm32 <src> --mcu STM32F407VGTx -o devices/stm32f407vg.pindef.json
 pinmap import --from kicad-lib sym.kicad_sym -o devices/
 pinmap refresh                                    # re-run importers listed in pinmap.toml
@@ -397,10 +402,16 @@ Implementation notes:
 - Every command returns a `Serialize + JsonSchema` struct. The CLI renders it as a table or as JSON, so output is never scraped from text.
 - `pinmap schema` uses `schemars`. Editors can bind the schema by glob (`*.pinasg.json`) for autocomplete and validation.
 
-### Manifest
+### Finding the project
+
+There is no required project file. The root pinasg is `--project FILE`, or else the single pinasg under the current directory that no other pinasg imports. Hidden directories and `target/` are skipped. When several roots exist (several boards in one tree), the command stops and lists them.
+
+### Manifest (phase 2, optional)
+
+`pinmap.toml` arrives with the importers, because `[sources]` and `[emit]` have nowhere else to live. Everything in phase 1 works without it.
 
 ```toml
-# pinmap.toml (discovered by walking up from cwd)
+# pinmap.toml (optional; discovered by walking up from cwd)
 [project]
 primary        = "board/revb.pinasg.ron"
 default_format = "ron"
@@ -496,8 +507,8 @@ KiCad spec (wiring list as JSON), `.kicad_sym` generation, C and Rust header emi
 
 | Phase | Scope | Exit criterion |
 |---|---|---|
-| **1. Core** | Model, `Format`, `classify`, loader with imports and stem resolution, resolver, `check`, `pin`/`periph` inspection, edit pipeline, canonical writer, `pinmap.toml` | A hand-written project is edited entirely through the CLI, with clean diffs and rollback on error |
-| **2. STM32 slice** | STM32 importer, `pinmap-dts` AST, Zephyr emitter, Markdown emitter, conformance harness | A Nucleo project's overlay passes `dtc` and builds |
+| **1. Core** | Model, `Format`, `classify`, loader with imports and stem resolution, resolver, `check`, `pin`/`periph` inspection, edit pipeline, canonical writer, root discovery | A hand-written project is edited entirely through the CLI, with clean diffs and rollback on error |
+| **2. STM32 slice** | Optional `pinmap.toml`, `init`, `refresh`, STM32 importer, `pinmap-dts` AST, Zephyr emitter, Markdown emitter, conformance harness | A Nucleo project's overlay passes `dtc` and builds |
 | **3. Verify** | KiCad netlist reader, `kicad_lib` importer, `verify` | A real schematic verifies clean; a deliberately broken one gives the expected findings |
 | **4. Second vendor** | nRF (any-pin routing), then freeze `pinmap/v1` | The schema needed no STM32-specific changes |
 | **5. Breadth** | Linux emitter, Mermaid, JSON adapters, SVD, `build` | n/a |

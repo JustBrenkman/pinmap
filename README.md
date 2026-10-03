@@ -7,7 +7,7 @@ One source of truth for microcontroller pin assignments.
 
 pinmap stores what a chip's pins *can* do and what your board *chose* to do with them as plain-text documents, then generates devicetree, documentation, and diagrams from them. It also checks that a KiCad schematic's net labels match the assignments.
 
-> **Status: early development.** The document model (`pinmap-model`) is implemented and tested. The loader, checks, CLI commands, importers, and emitters described below are designed but not built yet. See the [roadmap](#roadmap).
+> **Status: early development.** The document model, the project loader and checks, and the read-only CLI work today. Editing commands, importers, emitters, and schematic verification are designed but not built yet. See the [roadmap](#roadmap).
 
 ## Why
 
@@ -70,32 +70,50 @@ vendor data ──► IMPORTERS ──► *.pindef.* ─┐
 | Crate | Role | State |
 |---|---|---|
 | `pinmap-model` | Document types, format detection, canonical read/write, reference resolution | Implemented |
-| `pinmap-core` | Loader, resolver, `check`, `verify`, edit pipeline, `Importer`/`Emitter` traits | Stub |
+| `pinmap-core` | Loader, resolver, `check`; later `verify`, the edit pipeline, and the `Importer`/`Emitter` traits | Partial |
 | `pinmap-dts` | Devicetree AST and printer shared by the Zephyr and Linux emitters | Stub |
 | `pinmap-import` | Importers: STM32, KiCad symbol libraries, SVD | Stub |
 | `pinmap-emit` | Emitters: Zephyr, Linux, Markdown, Mermaid, JSON | Stub |
-| `pinmap-cli` | The `pinmap` binary | Stub |
+| `pinmap-cli` | The `pinmap` binary | Read-only commands |
 
 The full design, including the data model, validation rules, and schematic verification algorithm, is in [docs/design.md](docs/design.md).
 
-## Planned CLI
-
-None of these commands exist yet. This is the interface the design targets:
+## Using the CLI
 
 ```sh
-pinmap import --from stm32 <src> --mcu STM32F407VGTx -o devices/stm32f407vg.pindef.json
-pinmap pin list --free --can SPI1.SCK
-pinmap assign SPI1 SCK=PA5:IMU_SCK MISO=PA6:IMU_MISO
-pinmap check
-pinmap verify
-pinmap emit --to zephyr
+cargo install --path crates/pinmap-cli
+
+cd my-board                     # any directory above your *.pinasg.* files
+pinmap check                    # validate assignments against the pindef
+pinmap pin list --free          # pins with a pad that nothing uses
+pinmap pin list --can SPI1.SCK  # pins that can carry a signal
+pinmap pin show PA5
+pinmap periph show SPI1
+pinmap convert board.pinasg.json board.pinasg.ron --rm-source
+pinmap fmt --check              # in CI
+pinmap schema pinasg > pinasg.schema.json
 ```
+
+There is no project file to set up. pinmap looks under the current directory for the root assignment file, the one `.pinasg` file that no other file imports. With several boards in one tree, choose one with `--project board/revb.pinasg.ron`.
+
+`check` reports problems like this:
+
+```
+error[PM0102] SPI1.MOSI: PA6 has no function SPI1_MOSI (functions: SPI1_MISO, TIM3_CH1)
+              board/revb.pinasg.json  peripherals.SPI1.signals.MOSI
+              hint: pinmap pin list --can SPI1.MOSI
+✘ 1 error
+```
+
+Every command takes `--json` for scripts and AI tools. Exit codes: 0 when the command ran clean, 1 when it found problems, 2 when it could not run.
+
+Still to come: `import`, `assign`, `verify`, and `emit`.
 
 ## Roadmap
 
 | Phase | Scope | State |
 |---|---|---|
-| 1. Core | Model, loader with imports, resolver, `check`, inspection, edit pipeline | Model done |
+| 1. Core | Model, loader with imports, resolver, `check`, inspection, edit pipeline | Read-only CLI done; editing next |
 | 2. STM32 slice | STM32 importer, devicetree AST, Zephyr and Markdown emitters | Planned |
 | 3. Verify | KiCad netlist reader, KiCad library importer, `verify` | Planned |
 | 4. Second vendor | nRF, then freeze the `pinmap/v1` schema | Planned |

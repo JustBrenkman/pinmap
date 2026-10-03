@@ -17,6 +17,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 ```sh
 cargo test -p pinmap-model --no-default-features --features json
 cargo test -p pinmap-model --no-default-features --features ron
+cargo test -p pinmap-model --all-features
 ```
 
 CI runs all of the above.
@@ -27,7 +28,7 @@ The dependency rule is enforced by the crate graph. Please keep it that way.
 
 | Crate | May depend on | Must not depend on |
 |---|---|---|
-| `pinmap-model` | serde, indexmap | everything else in the workspace |
+| `pinmap-model` | serde, indexmap; schemars behind the optional `schema` feature | everything else in the workspace |
 | `pinmap-import` | model | emitters, other importers |
 | `pinmap-core` | model | importers, emitters |
 | `pinmap-emit` | model, core | importers, other emitters |
@@ -41,6 +42,18 @@ The dependency rule is enforced by the crate graph. Please keep it that way.
 - Schema field names and enum variants are `snake_case`.
 - New fields should be optional and skipped when absent, so existing files stay valid.
 - Update the fixtures in both `fixtures/json` and `fixtures/ron`. They must stay in canonical form and the tests check this.
+
+## Adding a check rule
+
+1. Pick the next free `PM01xx` code.
+2. Add the check in `crates/pinmap-core/src/rules.rs`.
+3. Add `fixtures/check/<code>/board.pinasg.json`, a project that breaks only that rule.
+4. Add the case to `each_rule_fixture_gives_exactly_its_finding` in `crates/pinmap-core/tests/rules.rs`.
+5. List the code in the check table in `docs/design.md` section 5.
+
+## CLI output
+
+The CLI tests compare output against [insta](https://insta.rs) snapshots in `crates/pinmap-cli/tests/snapshots/`. When you change output on purpose, run `cargo insta review` (or `INSTA_UPDATE=always cargo test -p pinmap-cli`) and read the snapshot diff before committing it.
 
 ## Adding an importer or emitter
 

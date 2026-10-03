@@ -33,3 +33,4 @@ jobs:
       - run: cargo test --workspace
       - run: cargo test -p pinmap-model --no-default-features --features json
       - run: cargo test -p pinmap-model --no-default-features --features ron
+      - run: cargo test -p pinmap-model --all-features
