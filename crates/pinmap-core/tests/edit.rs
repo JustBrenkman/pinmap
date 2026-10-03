@@ -376,3 +376,45 @@ fn unassign_ambiguous_name() {
         Err(EditError::Ambiguous(_))
     ));
 }
+
+#[test]
+fn props_on_assigned_peripherals_only() {
+    let (_dir, root) = revb();
+    let mut session = Session::open(&root).unwrap();
+    session
+        .set_prop("USART2", "current-speed", "<9600>")
+        .unwrap();
+    assert!(matches!(
+        session.set_prop("SPI2", "x", "<1>"),
+        Err(EditError::NotAssigned { .. })
+    ));
+    assert!(matches!(
+        session.unset_prop("SPI1", "nope"),
+        Err(EditError::NotAssigned { .. })
+    ));
+    session.unset_prop("SPI1", "spi-max-frequency").unwrap();
+    session.commit(&EditOptions::default()).unwrap();
+    let d = doc(&root);
+    assert_eq!(d.peripherals["USART2"].props["current-speed"], "<9600>");
+    assert!(d.peripherals["SPI1"].props.is_empty());
+}
+
+#[test]
+fn notes_on_pins_and_peripherals() {
+    let (_dir, root) = revb();
+    let mut session = Session::open(&root).unwrap();
+    session.set_note("PA4", Some("chip select")).unwrap();
+    session.set_note("SPI1", None).unwrap();
+    assert!(matches!(
+        session.set_note("PA5", Some("x")),
+        Err(EditError::NoteTarget(_))
+    ));
+    assert!(matches!(
+        session.set_note("PC0", Some("x")),
+        Err(EditError::NotAssigned { .. })
+    ));
+    session.commit(&EditOptions::default()).unwrap();
+    let d = doc(&root);
+    assert_eq!(d.pins["PA4"].note.as_deref(), Some("chip select"));
+    assert_eq!(d.peripherals["SPI1"].note, None);
+}

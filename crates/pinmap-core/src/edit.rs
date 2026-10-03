@@ -298,6 +298,62 @@ impl Session {
         }
     }
 
+    /// Sets a devicetree property on an assigned peripheral.
+    pub fn set_prop(&mut self, periph: &str, key: &str, value: &str) -> Result<(), EditError> {
+        let i = self
+            .periph_file(periph)
+            .ok_or_else(|| self.not_assigned(periph))?;
+        if let Some(p) = self.doc_mut(i).peripherals.get_mut(periph) {
+            p.props.insert(key.to_owned(), value.to_owned());
+        }
+        Ok(())
+    }
+
+    /// Removes a devicetree property from an assigned peripheral.
+    pub fn unset_prop(&mut self, periph: &str, key: &str) -> Result<(), EditError> {
+        let i = self
+            .periph_file(periph)
+            .ok_or_else(|| self.not_assigned(periph))?;
+        if !self.project.files[i].doc.peripherals[periph]
+            .props
+            .contains_key(key)
+        {
+            return Err(EditError::NotAssigned {
+                name: format!("{periph} property {key}"),
+                suggestion: None,
+            });
+        }
+        let doc = self.doc_mut(i);
+        if let Some(p) = doc.peripherals.get_mut(periph) {
+            p.props.shift_remove(key);
+        }
+        prune(doc, periph);
+        Ok(())
+    }
+
+    /// Sets or, with `None`, clears the note on a peripheral or a pin entry.
+    pub fn set_note(&mut self, name: &str, note: Option<&str>) -> Result<(), EditError> {
+        let note = note.map(str::to_owned);
+        if let Some(i) = self.periph_file(name) {
+            let doc = self.doc_mut(i);
+            if let Some(p) = doc.peripherals.get_mut(name) {
+                p.note = note;
+            }
+            prune(doc, name);
+            return Ok(());
+        }
+        if let Some(i) = self.pin_file(name) {
+            if let Some(entry) = self.doc_mut(i).pins.get_mut(name) {
+                entry.note = note;
+            }
+            return Ok(());
+        }
+        if !self.pin_uses(name).is_empty() {
+            return Err(EditError::NoteTarget(name.into()));
+        }
+        Err(self.not_assigned(name))
+    }
+
     /// Checks the edited project and, unless rejected or a dry run, writes
     /// every changed file.
     pub fn commit(self, options: &EditOptions) -> Result<EditOutcome, EditError> {
