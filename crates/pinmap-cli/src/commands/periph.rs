@@ -2,7 +2,7 @@ use std::fmt::Write as _;
 
 use anyhow::bail;
 use indexmap::{IndexMap, IndexSet};
-use pinmap_core::{Origin, Resolved, Usage, suggest};
+use pinmap_core::{Assignment, Origin, Resolved, suggest};
 use pinmap_model::{Mux, PinId};
 use serde::Serialize;
 
@@ -174,13 +174,7 @@ pub fn show(ctx: &Ctx, name: &str) -> anyhow::Result<Exit> {
                     .map(|(id, _)| id.clone())
                     .collect(),
                 config: resolved
-                    .map(|s| {
-                        let usage = Usage::Signal {
-                            periph: name.to_owned(),
-                            signal: signal.to_owned(),
-                        };
-                        r.settings(&s.asg.pin, &usage)
-                    })
+                    .map(|s| Assignment::Signal(s).settings())
                     .unwrap_or_default(),
             }
         })

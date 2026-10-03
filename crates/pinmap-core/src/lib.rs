@@ -18,11 +18,21 @@ pub use edit::{
     EditError, EditOptions, EditOutcome, FileChange, PinChange, Removed, Session, SignalConfig,
     SignalSpec,
 };
+/// `items` joined with commas, or `none` when there are none.
+pub(crate) fn list_or_none(items: impl IntoIterator<Item = impl std::fmt::Display>) -> String {
+    let items: Vec<String> = items.into_iter().map(|item| item.to_string()).collect();
+    if items.is_empty() {
+        "none".to_owned()
+    } else {
+        items.join(", ")
+    }
+}
+
 pub use emit::{
     EmitError, EmitOptions, EmitOutput, Emitter, OptionSpec, OutputFile, bool_option, check_options,
 };
 pub use load::{LoadedPinAsg, LoadedPinDef, Project, load};
 pub use resolve::{
-    Origin, Resolved, ResolvedPeriph, ResolvedPin, ResolvedSignal, Usage, open, resolve,
+    Assignment, Origin, Resolved, ResolvedPeriph, ResolvedPin, ResolvedSignal, Usage, open, resolve,
 };
 pub use suggest::suggest;

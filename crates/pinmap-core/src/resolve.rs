@@ -55,6 +55,65 @@ pub struct ResolvedPin {
     pub origin: Origin,
 }
 
+/// What a [`Usage`] refers to: a peripheral signal or a pin entry.
+#[derive(Debug, Clone, Copy)]
+pub enum Assignment<'a> {
+    Signal(&'a ResolvedSignal),
+    Pin(&'a ResolvedPin),
+}
+
+impl<'a> Assignment<'a> {
+    pub fn net(self) -> Option<&'a str> {
+        match self {
+            Self::Signal(s) => s.asg.net.as_deref(),
+            Self::Pin(p) => p.asg.net.as_deref(),
+        }
+    }
+
+    pub fn origin(self) -> &'a Origin {
+        match self {
+            Self::Signal(s) => &s.origin,
+            Self::Pin(p) => &p.origin,
+        }
+    }
+
+    /// The mux selecting a signal's function; pin entries have none.
+    pub fn mux(self) -> Option<&'a Mux> {
+        match self {
+            Self::Signal(s) => s.mux.as_ref(),
+            Self::Pin(_) => None,
+        }
+    }
+
+    /// A pin entry's note. Signals have none: notes belong to the peripheral.
+    pub fn note(self) -> Option<&'a str> {
+        match self {
+            Self::Signal(_) => None,
+            Self::Pin(p) => p.asg.note.as_deref(),
+        }
+    }
+
+    /// The electrical settings as `key=value` strings, in a fixed order:
+    /// bias, drive, speed for signals; initial, bias for pin entries.
+    pub fn settings(self) -> Vec<String> {
+        let pairs = match self {
+            Self::Signal(s) => vec![
+                ("bias", s.asg.bias.map(Bias::as_str)),
+                ("drive", s.asg.drive.map(Drive::as_str)),
+                ("speed", s.asg.speed.map(Speed::as_str)),
+            ],
+            Self::Pin(p) => vec![
+                ("initial", p.asg.initial.map(Level::as_str)),
+                ("bias", p.asg.bias.map(Bias::as_str)),
+            ],
+        };
+        pairs
+            .into_iter()
+            .filter_map(|(key, value)| value.map(|v| format!("{key}={v}")))
+            .collect()
+    }
+}
+
 /// A project merged across its files, with lookups in both directions.
 #[derive(Debug, Clone, Serialize)]
 pub struct Resolved {
@@ -81,45 +140,19 @@ impl Resolved {
 
     /// The net label on the pin, from the first use that has one.
     pub fn net(&self, pin: &str) -> Option<&str> {
-        self.uses(pin).iter().find_map(|usage| match usage {
-            Usage::Signal { periph, signal } => {
-                self.peripherals[periph].signals[signal].asg.net.as_deref()
-            }
-            Usage::Pin { .. } => self.pins[pin].asg.net.as_deref(),
-        })
+        self.uses(pin)
+            .iter()
+            .find_map(|usage| self.assignment(pin, usage).net())
     }
 
-    pub fn origin_of(&self, pin: &PinId, usage: &Usage) -> &Origin {
+    /// The signal or pin entry behind one of `pin`'s [`Resolved::uses`].
+    pub fn assignment(&self, pin: &str, usage: &Usage) -> Assignment<'_> {
         match usage {
-            Usage::Signal { periph, signal } => &self.peripherals[periph].signals[signal].origin,
-            Usage::Pin { .. } => &self.pins[pin].origin,
-        }
-    }
-
-    /// The electrical settings of one use as `key=value` strings, in a fixed
-    /// order: bias, drive, speed for signals; initial, bias for pin entries.
-    pub fn settings(&self, pin: &PinId, usage: &Usage) -> Vec<String> {
-        let pairs: Vec<(&str, Option<&str>)> = match usage {
             Usage::Signal { periph, signal } => {
-                let a = &self.peripherals[periph].signals[signal].asg;
-                vec![
-                    ("bias", a.bias.map(Bias::as_str)),
-                    ("drive", a.drive.map(Drive::as_str)),
-                    ("speed", a.speed.map(Speed::as_str)),
-                ]
+                Assignment::Signal(&self.peripherals[periph].signals[signal])
             }
-            Usage::Pin { .. } => {
-                let a = &self.pins[pin].asg;
-                vec![
-                    ("initial", a.initial.map(Level::as_str)),
-                    ("bias", a.bias.map(Bias::as_str)),
-                ]
-            }
-        };
-        pairs
-            .into_iter()
-            .filter_map(|(key, value)| value.map(|v| format!("{key}={v}")))
-            .collect()
+            Usage::Pin { .. } => Assignment::Pin(&self.pins[pin]),
+        }
     }
 
     /// Peripheral names that appear in the pindef, in first-seen order.

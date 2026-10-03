@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use indexmap::IndexSet;
 use pinmap_model::PinId;
 
-use crate::{Diagnostic, Origin, Resolved};
+use crate::{Diagnostic, Origin, Resolved, list_or_none};
 
 /// Runs every assignment check on a merged project.
 pub(crate) fn check(r: &Resolved, diagnostics: &mut Vec<Diagnostic>) {
@@ -24,16 +24,11 @@ pub(crate) fn check(r: &Resolved, diagnostics: &mut Vec<Diagnostic>) {
                 continue;
             };
             if s.mux.is_none() {
-                let functions: Vec<String> = def
-                    .functions
-                    .iter()
-                    .map(|f| format!("{}_{}", f.periph, f.name))
-                    .collect();
-                let functions = if functions.is_empty() {
-                    "none".to_owned()
-                } else {
-                    functions.join(", ")
-                };
+                let functions = list_or_none(
+                    def.functions
+                        .iter()
+                        .map(|f| format!("{}_{}", f.periph, f.name)),
+                );
                 let message = format!(
                     "{name}.{signal}: {pin} has no function {name}_{signal} (functions: {functions})"
                 );
@@ -78,12 +73,7 @@ fn check_package(r: &Resolved, diagnostics: &mut Vec<Diagnostic>) -> bool {
     if r.pindef.packages.contains_key(&r.target.package) {
         return true;
     }
-    let known: Vec<&str> = r.pindef.packages.keys().map(String::as_str).collect();
-    let known = if known.is_empty() {
-        "none".to_owned()
-    } else {
-        known.join(", ")
-    };
+    let known = list_or_none(r.pindef.packages.keys());
     let message = format!(
         "package {} is not in the pindef (packages: {known})",
         r.target.package
@@ -111,10 +101,8 @@ fn check_shared_pins(r: &Resolved, diagnostics: &mut Vec<Diagnostic>) {
         };
         for usage in later {
             let message = format!("{pin} is already used by {first}");
-            diagnostics.push(located(
-                Diagnostic::error("PM0103", message),
-                r.origin_of(pin, usage),
-            ));
+            let origin = r.assignment(pin.as_str(), usage).origin();
+            diagnostics.push(located(Diagnostic::error("PM0103", message), origin));
         }
     }
 }
@@ -131,7 +119,7 @@ fn check_shared_nets(r: &Resolved, diagnostics: &mut Vec<Diagnostic>) {
             }
             Some(other) => {
                 let message = format!("net {net} is on both {other} and {pin}");
-                let origin = r.origin_of(pin, &uses[0]);
+                let origin = r.assignment(pin.as_str(), &uses[0]).origin();
                 diagnostics.push(located(Diagnostic::info("PM0110", message), origin));
             }
         }

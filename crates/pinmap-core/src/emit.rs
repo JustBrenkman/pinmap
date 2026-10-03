@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use indexmap::IndexMap;
 
-use crate::{Diagnostic, Resolved};
+use crate::{Diagnostic, Resolved, list_or_none};
 
 /// `-O key=value` options passed to an emitter.
 pub type EmitOptions = IndexMap<String, String>;
@@ -29,7 +29,7 @@ pub struct EmitOutput {
 
 #[derive(Debug, thiserror::Error)]
 pub enum EmitError {
-    #[error("{emitter} has no option {key}; options: {}", options_text(.known))]
+    #[error("{emitter} has no option {key}; options: {}", list_or_none(.known))]
     UnknownOption {
         emitter: &'static str,
         key: String,
@@ -41,14 +41,6 @@ pub enum EmitError {
         value: String,
         expected: &'static str,
     },
-}
-
-fn options_text(known: &[&str]) -> String {
-    if known.is_empty() {
-        "none".into()
-    } else {
-        known.join(", ")
-    }
 }
 
 /// Turns a resolved project into output files. Emitters build files in

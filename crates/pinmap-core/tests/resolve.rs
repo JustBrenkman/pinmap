@@ -102,16 +102,11 @@ fn settings_describe_each_use() {
         periph: periph.into(),
         signal: signal.into(),
     };
-    assert_eq!(
-        r.settings(&"PA5".into(), &signal("SPI1", "SCK")),
-        ["speed=very_high"]
-    );
-    assert_eq!(
-        r.settings(&"PA3".into(), &signal("USART2", "RX")),
-        ["bias=pull_up"]
-    );
+    let settings = |pin: &str, usage: &Usage| r.assignment(pin, usage).settings();
+    assert_eq!(settings("PA5", &signal("SPI1", "SCK")), ["speed=very_high"]);
+    assert_eq!(settings("PA3", &signal("USART2", "RX")), ["bias=pull_up"]);
     let pin = Usage::Pin {
         mode: Mode::GpioOut,
     };
-    assert_eq!(r.settings(&"PA4".into(), &pin), ["initial=high"]);
+    assert_eq!(settings("PA4", &pin), ["initial=high"]);
 }

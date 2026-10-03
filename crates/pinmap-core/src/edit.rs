@@ -2,13 +2,12 @@ use std::collections::{BTreeSet, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use indexmap::IndexMap;
 use pinmap_model::{
-    Bias, Drive, Level, Mode, ModelError, PeriphAsg, PinAsg, PinAsgEntry, PinId, SignalAsg, Speed,
-    classify, has_comments, stage, to_string,
+    Bias, Drive, Level, Mode, ModelError, PinAsg, PinAsgEntry, PinId, SignalAsg, Speed, classify,
+    has_comments, stage, to_string,
 };
 
-use crate::{Diagnostic, Project, Severity, Usage, load, resolve};
+use crate::{Diagnostic, Project, Severity, Usage, list_or_none, load, resolve};
 
 /// One `SIGNAL=PIN[:NET]` to assign.
 pub struct SignalSpec {
@@ -96,22 +95,13 @@ pub enum EditError {
         .path.display()
     )]
     CommentLoss { path: PathBuf },
-    #[error("{source}; already updated: {}", list(.updated))]
+    #[error("{source}; already updated: {}", list_or_none(.updated.iter().map(|p| p.display())))]
     PartialWrite {
         updated: Vec<PathBuf>,
         source: ModelError,
     },
     #[error(transparent)]
     Model(#[from] ModelError),
-}
-
-fn list(paths: &[PathBuf]) -> String {
-    let shown: Vec<String> = paths.iter().map(|p| p.display().to_string()).collect();
-    if shown.is_empty() {
-        "none".into()
-    } else {
-        shown.join(", ")
-    }
 }
 
 fn hint(suggestion: &Option<String>) -> String {
@@ -197,18 +187,10 @@ impl Session {
                 net: None,
                 note: None,
             });
-        if let Some(mode) = change.mode {
-            entry.mode = mode;
-        }
-        if change.initial.is_some() {
-            entry.initial = change.initial;
-        }
-        if change.bias.is_some() {
-            entry.bias = change.bias;
-        }
-        if let Some(net) = &change.net {
-            entry.net = Some(net.clone());
-        }
+        entry.mode = change.mode.unwrap_or(entry.mode);
+        entry.initial = change.initial.or(entry.initial);
+        entry.bias = change.bias.or(entry.bias);
+        entry.net = change.net.clone().or(entry.net.take());
         Ok(())
     }
 
@@ -225,11 +207,7 @@ impl Session {
             .doc_mut(i)
             .peripherals
             .entry(periph.to_owned())
-            .or_insert_with(|| PeriphAsg {
-                signals: IndexMap::new(),
-                props: IndexMap::new(),
-                note: None,
-            });
+            .or_default();
         for spec in signals {
             let signal = entry
                 .signals
@@ -242,18 +220,10 @@ impl Session {
                     speed: None,
                 });
             signal.pin = spec.pin.clone();
-            if let Some(net) = &spec.net {
-                signal.net = Some(net.clone());
-            }
-            if config.bias.is_some() {
-                signal.bias = config.bias;
-            }
-            if config.drive.is_some() {
-                signal.drive = config.drive;
-            }
-            if config.speed.is_some() {
-                signal.speed = config.speed;
-            }
+            signal.net = spec.net.clone().or(signal.net.take());
+            signal.bias = config.bias.or(signal.bias);
+            signal.drive = config.drive.or(signal.drive);
+            signal.speed = config.speed.or(signal.speed);
         }
         Ok(())
     }

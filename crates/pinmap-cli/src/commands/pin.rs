@@ -232,28 +232,12 @@ fn find_pin<'a>(r: &'a Resolved, name: &str) -> anyhow::Result<(&'a PinId, &'a P
 }
 
 fn use_detail(r: &Resolved, pin: &PinId, usage: &Usage) -> UseDetail {
-    match usage {
-        Usage::Signal { periph, signal } => {
-            let s = &r.peripherals[periph].signals[signal];
-            let config = r.settings(pin, usage);
-            UseDetail {
-                usage: usage.clone(),
-                net: s.asg.net.clone(),
-                config,
-                note: None,
-                origin: s.origin.clone(),
-            }
-        }
-        Usage::Pin { .. } => {
-            let p = &r.pins[pin];
-            let config = r.settings(pin, usage);
-            UseDetail {
-                usage: usage.clone(),
-                net: p.asg.net.clone(),
-                config,
-                note: p.asg.note.clone(),
-                origin: p.origin.clone(),
-            }
-        }
+    let assignment = r.assignment(pin.as_str(), usage);
+    UseDetail {
+        usage: usage.clone(),
+        net: assignment.net().map(str::to_owned),
+        config: assignment.settings(),
+        note: assignment.note().map(str::to_owned),
+        origin: assignment.origin().clone(),
     }
 }

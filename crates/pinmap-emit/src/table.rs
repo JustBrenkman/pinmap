@@ -1,6 +1,6 @@
 //! The pin rows that the emitters share.
 
-use pinmap_core::{OptionSpec, Resolved, Usage};
+use pinmap_core::{OptionSpec, Resolved};
 use pinmap_model::{Mux, PinId};
 
 pub(crate) const FREE_PINS: OptionSpec = OptionSpec {
@@ -44,24 +44,15 @@ pub(crate) fn rows(r: &Resolved, free_pins: bool) -> Vec<Row<'_>> {
             });
         }
         for usage in uses {
-            let (mux, net, note) = match usage {
-                Usage::Signal { periph, signal } => {
-                    let s = &r.peripherals[periph].signals[signal];
-                    (s.mux.as_ref(), s.asg.net.as_deref(), None)
-                }
-                Usage::Pin { .. } => {
-                    let p = &r.pins[pin];
-                    (None, p.asg.net.as_deref(), p.asg.note.as_deref())
-                }
-            };
+            let assignment = r.assignment(pin.as_str(), usage);
             rows.push(Row {
                 pin,
                 pad,
                 function: Some(usage.to_string()),
-                mux,
-                net,
-                settings: r.settings(pin, usage),
-                note,
+                mux: assignment.mux(),
+                net: assignment.net(),
+                settings: assignment.settings(),
+                note: assignment.note(),
             });
         }
     }
