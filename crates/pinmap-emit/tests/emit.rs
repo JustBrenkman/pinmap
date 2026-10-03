@@ -97,3 +97,29 @@ fn output_is_the_same_for_every_storage_format() {
     let ids: Vec<&str> = pinmap_emit::all().iter().map(|e| e.id()).collect();
     assert_eq!(ids, ["markdown", "json"]);
 }
+
+#[test]
+fn properties_stay_in_their_code_span() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::copy(
+        fixtures().join("json/devices/stm32f407vg.pindef.json"),
+        dir.path().join("chip.pindef.json"),
+    )
+    .unwrap();
+    let root = dir.path().join("board.pinasg.json");
+    fs::write(
+        &root,
+        r#"{"schema": "pinmap/v1", "kind": "pinasg", "device": "chip",
+            "target": {"package": "LQFP100"},
+            "peripherals": {"SPI1": {"signals": {"SCK": {"pin": "PA5"}},
+                "props": {"label": "a`b|c\n- injected: x", "plain": "<1>"}}}}"#,
+    )
+    .unwrap();
+    let text = emit("markdown", &root, &[]);
+    assert!(
+        text.contains("- ``label = a`b|c - injected: x``\n"),
+        "{text}"
+    );
+    assert!(text.contains("- `plain = <1>`\n"), "{text}");
+    assert!(!text.lines().any(|l| l.starts_with("- injected")), "{text}");
+}

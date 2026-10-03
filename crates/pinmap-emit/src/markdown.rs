@@ -69,7 +69,7 @@ impl Emitter for Markdown {
             if !periph.props.is_empty() {
                 out.push_str("\nProperties:\n\n");
                 for (key, value) in &periph.props {
-                    let _ = writeln!(out, "- `{key} = {value}`");
+                    let _ = writeln!(out, "- {}", code_span(&format!("{key} = {value}")));
                 }
             }
         }
@@ -93,4 +93,18 @@ fn table_row(out: &mut String, cells: &[&str]) {
 /// Keeps a value inside its table cell: escapes `|` and flattens line breaks.
 fn cell(text: &str) -> String {
     text.replace('|', "\\|").replace(['\r', '\n'], " ")
+}
+
+/// Wraps text in a code span that its own backticks cannot close, with line
+/// breaks flattened so the span stays on one list item.
+fn code_span(text: &str) -> String {
+    let text = text.replace(['\r', '\n'], " ");
+    let longest = text.split(|c| c != '`').map(str::len).max().unwrap_or(0);
+    let fence = "`".repeat(longest + 1);
+    let pad = if text.starts_with('`') || text.ends_with('`') {
+        " "
+    } else {
+        ""
+    };
+    format!("{fence}{pad}{text}{pad}{fence}")
 }
