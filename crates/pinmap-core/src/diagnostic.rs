@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::fmt;
 use std::path::PathBuf;
 
@@ -111,8 +112,54 @@ impl Counts {
 }
 
 /// Puts diagnostics in a stable order: by file, then logical path, then code.
+/// Numbers inside names compare by value, so `imports[2]` precedes `imports[10]`.
 pub fn sort(diagnostics: &mut [Diagnostic]) {
-    diagnostics.sort_by(|a, b| (&a.file, &a.path, a.code).cmp(&(&b.file, &b.path, b.code)));
+    diagnostics.sort_by(|a, b| {
+        let file = |d: &Diagnostic| d.file.as_ref().map(|f| f.to_string_lossy().into_owned());
+        cmp_opt(file(a).as_deref(), file(b).as_deref())
+            .then_with(|| cmp_opt(a.path.as_deref(), b.path.as_deref()))
+            .then_with(|| a.code.cmp(b.code))
+    });
+}
+
+/// Missing values sort first.
+fn cmp_opt(a: Option<&str>, b: Option<&str>) -> Ordering {
+    match (a, b) {
+        (Some(a), Some(b)) => natural_cmp(a, b),
+        _ => a.is_some().cmp(&b.is_some()),
+    }
+}
+
+/// Compares strings with runs of ASCII digits compared as numbers.
+fn natural_cmp(mut a: &str, mut b: &str) -> Ordering {
+    loop {
+        let (Some(x), Some(y)) = (a.chars().next(), b.chars().next()) else {
+            return a.len().cmp(&b.len());
+        };
+        if x.is_ascii_digit() && y.is_ascii_digit() {
+            let (digits_a, rest_a) = split_digits(a);
+            let (digits_b, rest_b) = split_digits(b);
+            let (na, nb) = (
+                digits_a.trim_start_matches('0'),
+                digits_b.trim_start_matches('0'),
+            );
+            let order = na.len().cmp(&nb.len()).then_with(|| na.cmp(nb));
+            if order != Ordering::Equal {
+                return order;
+            }
+            (a, b) = (rest_a, rest_b);
+        } else {
+            if x != y {
+                return x.cmp(&y);
+            }
+            (a, b) = (&a[x.len_utf8()..], &b[y.len_utf8()..]);
+        }
+    }
+}
+
+fn split_digits(s: &str) -> (&str, &str) {
+    let end = s.find(|c: char| !c.is_ascii_digit()).unwrap_or(s.len());
+    s.split_at(end)
 }
 
 #[cfg(test)]
@@ -145,6 +192,31 @@ mod tests {
         ];
         let counts = Counts::of(&diags);
         assert_eq!((counts.errors, counts.warnings, counts.infos), (2, 0, 1));
+    }
+
+    #[test]
+    fn numbers_in_paths_sort_naturally() {
+        let mut diags = vec![
+            Diagnostic::error("PM0005", "x")
+                .in_file("b.pinasg.json")
+                .at_path("imports[10]"),
+            Diagnostic::error("PM0005", "x")
+                .in_file("b.pinasg.json")
+                .at_path("imports[2]"),
+            Diagnostic::error("PM0101", "x")
+                .in_file("b.pinasg.json")
+                .at_path("pins.PA10"),
+            Diagnostic::error("PM0101", "x")
+                .in_file("b.pinasg.json")
+                .at_path("pins.PA9"),
+        ];
+        sort(&mut diags);
+        let paths: Vec<&str> = diags.iter().map(|d| d.path.as_deref().unwrap()).collect();
+        assert_eq!(
+            paths,
+            ["imports[2]", "imports[10]", "pins.PA9", "pins.PA10"]
+        );
+        assert_eq!(natural_cmp("a01", "a1"), std::cmp::Ordering::Equal);
     }
 
     #[test]
