@@ -31,6 +31,8 @@ pub enum Command {
     Periph(PeriphCommand),
     /// Convert a document between JSON and RON.
     Convert(ConvertArgs),
+    /// Rewrite documents in canonical form.
+    Fmt(FmtArgs),
 }
 
 #[derive(Args)]
@@ -129,4 +131,13 @@ impl From<FormatArg> for Format {
             FormatArg::Ron => Format::Ron,
         }
     }
+}
+
+#[derive(Args)]
+pub struct FmtArgs {
+    /// Report files that would change instead of rewriting them.
+    #[arg(long)]
+    pub check: bool,
+    /// Files to format. Defaults to the project's files and its pindef.
+    pub paths: Vec<PathBuf>,
 }
