@@ -1,0 +1,53 @@
+---
+source: crates/pinmap-emit/tests/emit.rs
+expression: "emit(\"markdown\", &root, &[])"
+---
+# STM32F407VGTx pinout (LQFP100, U1)
+
+| Pin | Pad | Function | Mux | Net | Config | Note |
+|---|---|---|---|---|---|---|
+| PA2 | 25 | USART2.TX | AF7 | UART_TX_DEBUG |  |  |
+| PA3 | 26 | USART2.RX | AF7 | UART_RX_DEBUG | bias=pull_up |  |
+| PA4 | 29 | gpio_out |  | IMU_CS | initial=high | SPI1 CS, active low |
+| PA5 | 30 | SPI1.SCK | AF5 | IMU_SCK | speed=very_high |  |
+| PA6 | 31 | SPI1.MISO | AF5 | IMU_MISO | speed=very_high |  |
+| PA7 | 32 | SPI1.MOSI | AF5 | IMU_MOSI | speed=very_high |  |
+| PA11 | 70 | OTG_FS.DM | AF10 | USB_D_N | bias=floating |  |
+| PA12 | 71 | OTG_FS.DP | AF10 | USB_D_P | bias=floating |  |
+| PA13 | 72 | reserved |  | SWDIO |  | SWD |
+| PA14 | 76 | reserved |  | SWCLK |  | SWD |
+| PB12 | 51 | gpio_in |  | BTN_USER | bias=pull_up |  |
+
+## SPI1
+
+IMU bus; CS is a GPIO on PA4
+
+| Signal | Pin | Net |
+|---|---|---|
+| SCK | PA5 | IMU_SCK |
+| MISO | PA6 | IMU_MISO |
+| MOSI | PA7 | IMU_MOSI |
+
+Properties:
+
+- `spi-max-frequency = <8000000>`
+
+## USART2
+
+| Signal | Pin | Net |
+|---|---|---|
+| TX | PA2 | UART_TX_DEBUG |
+| RX | PA3 | UART_RX_DEBUG |
+
+Properties:
+
+- `current-speed = <115200>`
+
+## OTG_FS
+
+USB full-speed device port
+
+| Signal | Pin | Net |
+|---|---|---|
+| DM | PA11 | USB_D_N |
+| DP | PA12 | USB_D_P |

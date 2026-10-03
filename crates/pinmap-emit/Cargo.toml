@@ -10,6 +10,17 @@ homepage.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
+[features]
+default = ["markdown", "json"]
+markdown = []
+json = ["dep:serde", "dep:serde_json"]
+
 [dependencies]
 pinmap-core.workspace = true
 pinmap-model.workspace = true
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+
+[dev-dependencies]
+insta.workspace = true
+tempfile.workspace = true
