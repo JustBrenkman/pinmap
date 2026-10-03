@@ -1,12 +1,11 @@
+mod common;
+
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use pinmap_core::{Diagnostic, load};
 
-fn fixtures() -> PathBuf {
-    let crates = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-    crates.parent().unwrap().join("fixtures")
-}
+use common::fixtures;
 
 /// `"CODE file-name logical-path"` per diagnostic, `-` for a missing part.
 fn summary(diags: &[Diagnostic]) -> Vec<String> {

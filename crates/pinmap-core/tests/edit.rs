@@ -1,3 +1,5 @@
+mod common;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -6,10 +8,7 @@ use pinmap_core::{
 };
 use pinmap_model::{Level, Mode, Speed};
 
-fn fixtures() -> PathBuf {
-    let crates = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-    crates.parent().unwrap().join("fixtures")
-}
+use common::fixtures;
 
 /// A project with the fixture pindef and a board file holding `body`
 /// (JSON members after `target`, may be empty).

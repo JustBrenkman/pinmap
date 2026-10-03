@@ -1,12 +1,11 @@
-use std::path::{Path, PathBuf};
+mod common;
+
+use std::path::Path;
 
 use pinmap_core::{Usage, open};
 use pinmap_model::{Mode, Mux};
 
-fn fixtures() -> PathBuf {
-    let crates = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-    crates.parent().unwrap().join("fixtures")
-}
+use common::fixtures;
 
 #[test]
 fn merges_root_and_imports() {

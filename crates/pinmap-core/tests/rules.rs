@@ -1,11 +1,8 @@
-use std::path::{Path, PathBuf};
+mod common;
 
 use pinmap_core::{Severity, open};
 
-fn fixtures() -> PathBuf {
-    let crates = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-    crates.parent().unwrap().join("fixtures")
-}
+use common::fixtures;
 
 /// (code, file name, logical path) for every diagnostic of a fixture.
 fn findings(root: &str) -> Vec<(&'static str, String, String)> {
