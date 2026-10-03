@@ -34,7 +34,9 @@ mod schema;
 pub use comments::has_comments;
 pub use common::{Bias, Drive, Level, Mode, PinId, SCHEMA_V1, SchemaVersion, Speed};
 pub use error::ModelError;
-pub use io::{AnyDoc, Document, from_str, read, read_any, to_string, write, write_atomic};
+pub use io::{
+    AnyDoc, Document, Staged, from_str, read, read_any, stage, to_string, write, write_atomic,
+};
 pub use kind::{DocKind, Format, classify};
 pub use paths::normalize_path;
 pub use pinasg::{PeriphAsg, PinAsg, PinAsgEntry, SignalAsg, Target};

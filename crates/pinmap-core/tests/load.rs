@@ -203,3 +203,35 @@ fn missing_pindef_is_reported_once() {
     let (_, diags) = load(&dir.path().join("board.pinasg.json"));
     assert_eq!(summary(&diags), ["PM0005 board.pinasg.json device"]);
 }
+
+#[cfg(unix)]
+#[test]
+fn symlinked_documents_are_named_by_the_link() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::create_dir_all(dir.path().join("devices")).unwrap();
+    fs::create_dir_all(dir.path().join("store")).unwrap();
+    fs::copy(
+        fixtures().join("json/devices/stm32f407vg.pindef.json"),
+        dir.path().join("store/blob2"),
+    )
+    .unwrap();
+    std::os::unix::fs::symlink(
+        dir.path().join("store/blob2"),
+        dir.path().join("devices/chip.pindef.json"),
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("store/blob1"),
+        r#"{"schema": "pinmap/v1", "kind": "pinasg", "device": "devices/chip",
+            "target": {"package": "LQFP100"}}"#,
+    )
+    .unwrap();
+    std::os::unix::fs::symlink(
+        dir.path().join("store/blob1"),
+        dir.path().join("link.pinasg.json"),
+    )
+    .unwrap();
+    let (project, diags) = load(&dir.path().join("link.pinasg.json"));
+    assert!(diags.is_empty(), "{diags:?}");
+    assert!(project.device.is_some());
+}

@@ -418,3 +418,62 @@ fn notes_on_pins_and_peripherals() {
     assert_eq!(d.pins["PA4"].note.as_deref(), Some("chip select"));
     assert_eq!(d.peripherals["SPI1"].note, None);
 }
+
+/// A board importing `sub/dup`, with `body_root` and `body_dup` as members
+/// after `target` (and after `imports` for the root).
+fn two_files(body_root: &str, body_dup: &str) -> (tempfile::TempDir, PathBuf, PathBuf) {
+    let (dir, root) = project(&format!(r#""imports": ["sub/dup"], {body_root}"#));
+    fs::create_dir_all(dir.path().join("board/sub")).unwrap();
+    let dup = dir.path().join("board/sub/dup.pinasg.json");
+    fs::write(
+        &dup,
+        format!(
+            r#"{{"schema": "pinmap/v1", "kind": "pinasg", "device": "../../devices/stm32f407vg",
+                "target": {{"package": "LQFP100", "refdes": "U1"}}, {body_dup}}}"#
+        ),
+    )
+    .unwrap();
+    (dir, root, dup)
+}
+
+#[cfg(unix)]
+#[test]
+fn failed_multi_file_write_changes_nothing() {
+    use std::os::unix::fs::PermissionsExt;
+    let pins = r#""pins": {"PB12": {"mode": "gpio_in"}}"#;
+    let (dir, root, _) = two_files(pins, pins);
+    let sub = dir.path().join("board/sub");
+    let before = fs::read_to_string(&root).unwrap();
+    fs::set_permissions(&sub, fs::Permissions::from_mode(0o555)).unwrap();
+    if fs::write(sub.join("probe"), "").is_ok() {
+        fs::set_permissions(&sub, fs::Permissions::from_mode(0o755)).unwrap();
+        return; // running as root: permissions are not enforced
+    }
+    let mut session = Session::open(&root).unwrap();
+    session.unassign("PB12").unwrap();
+    let result = session.commit(&EditOptions::default());
+    fs::set_permissions(&sub, fs::Permissions::from_mode(0o755)).unwrap();
+    assert!(result.is_err());
+    assert_eq!(fs::read_to_string(&root).unwrap(), before);
+    let leftovers: Vec<_> = fs::read_dir(dir.path().join("board"))
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .filter(|n| n.contains("pinmap-tmp"))
+        .collect();
+    assert!(leftovers.is_empty(), "{leftovers:?}");
+}
+
+#[test]
+fn unassigning_a_duplicated_peripheral_removes_every_definition() {
+    let usart = |sig: &str, pin: &str| {
+        format!(r#""peripherals": {{"USART2": {{"signals": {{"{sig}": {{"pin": "{pin}"}}}}}}}}"#)
+    };
+    let (_dir, root, dup) = two_files(&usart("TX", "PA2"), &usart("RX", "PA3"));
+    unassign(&root, "USART2").unwrap();
+    assert!(!doc(&root).peripherals.contains_key("USART2"));
+    assert!(!doc(&dup).peripherals.contains_key("USART2"));
+
+    let (_dir, root, dup) = two_files(&usart("TX", "PA2"), &usart("RX", "PA3"));
+    unassign(&root, "USART2.TX").unwrap();
+    assert!(!doc(&dup).peripherals.contains_key("USART2"));
+}

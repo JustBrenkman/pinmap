@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use indexmap::IndexMap;
 use pinmap_model::{
     Bias, Drive, Level, Mode, ModelError, PeriphAsg, PinAsg, PinAsgEntry, PinId, SignalAsg, Speed,
-    classify, has_comments, to_string, write_atomic,
+    classify, has_comments, stage, to_string,
 };
 
 use crate::{Diagnostic, Project, Severity, Usage, load, resolve};
@@ -96,8 +96,22 @@ pub enum EditError {
         .path.display()
     )]
     CommentLoss { path: PathBuf },
+    #[error("{source}; already updated: {}", list(.updated))]
+    PartialWrite {
+        updated: Vec<PathBuf>,
+        source: ModelError,
+    },
     #[error(transparent)]
     Model(#[from] ModelError),
+}
+
+fn list(paths: &[PathBuf]) -> String {
+    let shown: Vec<String> = paths.iter().map(|p| p.display().to_string()).collect();
+    if shown.is_empty() {
+        "none".into()
+    } else {
+        shown.join(", ")
+    }
 }
 
 fn hint(suggestion: &Option<String>) -> String {
@@ -256,11 +270,10 @@ impl Session {
                         .contains_key(signal)
                 })
                 .ok_or_else(|| self.not_assigned(name))?;
-            let doc = self.doc_mut(i);
-            if let Some(p) = doc.peripherals.get_mut(periph) {
+            if let Some(p) = self.doc_mut(i).peripherals.get_mut(periph) {
                 p.signals.shift_remove(signal);
             }
-            prune(doc, periph);
+            self.prune(i, periph);
             return Ok(Removed::Signal {
                 periph: periph.into(),
                 signal: signal.into(),
@@ -270,22 +283,21 @@ impl Session {
         let uses = self.pin_uses(name);
         match (periph, uses.is_empty()) {
             (Some(_), false) => Err(EditError::Ambiguous(name.into())),
-            (Some(i), true) => {
-                self.doc_mut(i).peripherals.shift_remove(name);
+            (Some(_), true) => {
+                self.remove_peripheral(name);
                 Ok(Removed::Peripheral(name.into()))
             }
             (None, false) => {
                 for (i, usage) in &uses {
-                    let doc = self.doc_mut(*i);
                     match usage {
                         Usage::Signal { periph, signal } => {
-                            if let Some(p) = doc.peripherals.get_mut(periph) {
+                            if let Some(p) = self.doc_mut(*i).peripherals.get_mut(periph) {
                                 p.signals.shift_remove(signal);
                             }
-                            prune(doc, periph);
+                            self.prune(*i, periph);
                         }
                         Usage::Pin { .. } => {
-                            doc.pins.shift_remove(name);
+                            self.doc_mut(*i).pins.shift_remove(name);
                         }
                     }
                 }
@@ -323,11 +335,10 @@ impl Session {
                 suggestion: None,
             });
         }
-        let doc = self.doc_mut(i);
-        if let Some(p) = doc.peripherals.get_mut(periph) {
+        if let Some(p) = self.doc_mut(i).peripherals.get_mut(periph) {
             p.props.shift_remove(key);
         }
-        prune(doc, periph);
+        self.prune(i, periph);
         Ok(())
     }
 
@@ -335,11 +346,10 @@ impl Session {
     pub fn set_note(&mut self, name: &str, note: Option<&str>) -> Result<(), EditError> {
         let note = note.map(str::to_owned);
         if let Some(i) = self.periph_file(name) {
-            let doc = self.doc_mut(i);
-            if let Some(p) = doc.peripherals.get_mut(name) {
+            if let Some(p) = self.doc_mut(i).peripherals.get_mut(name) {
                 p.note = note;
             }
-            prune(doc, name);
+            self.prune(i, name);
             return Ok(());
         }
         if let Some(i) = self.pin_file(name) {
@@ -400,8 +410,19 @@ impl Session {
 
         let written = !rejected && !options.dry_run && !changes.is_empty();
         if written {
-            for (i, change) in &changes {
-                write_atomic(&self.project.files[*i].disk_path, &change.after)?;
+            // Stage every file before renaming any, so a failed write leaves
+            // the project as it was. Dropped stages delete their temp files.
+            let staged = changes
+                .iter()
+                .map(|(i, change)| stage(&self.project.files[*i].disk_path, &change.after))
+                .collect::<Result<Vec<_>, _>>()?;
+            let mut updated = Vec::new();
+            for (staged, (_, change)) in staged.into_iter().zip(&changes) {
+                staged.commit().map_err(|source| EditError::PartialWrite {
+                    updated: updated.clone(),
+                    source,
+                })?;
+                updated.push(change.path.clone());
             }
         }
         Ok(EditOutcome {
@@ -468,21 +489,33 @@ impl Session {
         }
     }
 
+    /// Drops `periph` once file `i`'s definition has nothing left: no
+    /// signals, props, or note.
+    fn prune(&mut self, i: usize, periph: &str) {
+        let empty = self.project.files[i]
+            .doc
+            .peripherals
+            .get(periph)
+            .is_some_and(|p| p.signals.is_empty() && p.props.is_empty() && p.note.is_none());
+        if empty {
+            self.remove_peripheral(periph);
+        }
+    }
+
+    /// Removes `periph` from every file, so that a duplicate definition
+    /// (PM0108) does not take the removed one's place.
+    fn remove_peripheral(&mut self, periph: &str) {
+        for i in 0..self.project.files.len() {
+            if self.project.files[i].doc.peripherals.contains_key(periph) {
+                self.doc_mut(i).peripherals.shift_remove(periph);
+            }
+        }
+    }
+
     fn pin_file(&self, pin: &str) -> Option<usize> {
         self.project
             .files
             .iter()
             .position(|f| f.doc.pins.contains_key(pin))
-    }
-}
-
-/// Drops a peripheral that has nothing left: no signals, props, or note.
-fn prune(doc: &mut PinAsg, periph: &str) {
-    let empty = doc
-        .peripherals
-        .get(periph)
-        .is_some_and(|p| p.signals.is_empty() && p.props.is_empty() && p.note.is_none());
-    if empty {
-        doc.peripherals.shift_remove(periph);
     }
 }

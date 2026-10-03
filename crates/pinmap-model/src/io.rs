@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -94,23 +94,56 @@ pub fn write<T: Document>(path: impl AsRef<Path>, doc: &T) -> Result<(), ModelEr
 /// Writes `contents` to `path` through a temporary file in the same
 /// directory and a rename, so a reader never sees a half-written file.
 pub fn write_atomic(path: impl AsRef<Path>, contents: &str) -> Result<(), ModelError> {
+    stage(path, contents)?.commit()
+}
+
+/// A file written to its temporary name but not yet renamed into place.
+/// Dropping it without [`Staged::commit`] deletes the temporary file, so
+/// several files can be staged first and committed only if all staged.
+pub struct Staged {
+    temp: PathBuf,
+    path: PathBuf,
+    done: bool,
+}
+
+/// Writes `contents` next to `path` under a temporary name.
+pub fn stage(path: impl AsRef<Path>, contents: &str) -> Result<Staged, ModelError> {
     let path = path.as_ref();
-    let save = || -> Result<(), ModelError> {
-        let name = path.file_name().ok_or_else(|| {
-            std::io::Error::new(std::io::ErrorKind::InvalidInput, "path has no file name")
-        })?;
-        let mut temp_name = std::ffi::OsString::from(".");
-        temp_name.push(name);
-        temp_name.push(".pinmap-tmp");
-        let temp = path.with_file_name(temp_name);
-        fs::write(&temp, contents)?;
-        if let Err(err) = fs::rename(&temp, path) {
-            let _ = fs::remove_file(&temp);
-            return Err(err.into());
-        }
-        Ok(())
+    let name = path.file_name().ok_or_else(|| {
+        let err = std::io::Error::new(std::io::ErrorKind::InvalidInput, "path has no file name");
+        ModelError::from(err).at(path)
+    })?;
+    let mut temp_name = std::ffi::OsString::from(".");
+    temp_name.push(name);
+    temp_name.push(".pinmap-tmp");
+    let mut staged = Staged {
+        temp: path.with_file_name(temp_name),
+        path: path.to_path_buf(),
+        done: false,
     };
-    save().map_err(|err| err.at(path))
+    if let Err(err) = fs::write(&staged.temp, contents) {
+        // Nothing to clean up if the file was never created.
+        staged.done = !staged.temp.exists();
+        return Err(ModelError::from(err).at(path));
+    }
+    Ok(staged)
+}
+
+impl Staged {
+    /// Renames the temporary file over the target.
+    pub fn commit(mut self) -> Result<(), ModelError> {
+        let result = fs::rename(&self.temp, &self.path);
+        self.done = result.is_ok();
+        result.map_err(|err| ModelError::from(err).at(&self.path))
+    }
+}
+
+impl Drop for Staged {
+    fn drop(&mut self) {
+        if !self.done {
+            let _ = fs::remove_file(&self.temp);
+        }
+    }
 }
 
 /// Either kind of document, for code that handles both, such as conversion.
