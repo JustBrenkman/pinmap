@@ -71,133 +71,52 @@ impl fmt::Display for PinId {
     }
 }
 
-/// Pull resistor configuration. "No bias" is `floating`, not `none`, because
-/// RON can read `None` as an absent option.
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Bias {
-    Floating,
-    PullUp,
-    PullDown,
+/// An enum of settings stored by name in files. `as_str` returns the same
+/// name serde reads and writes.
+macro_rules! setting {
+    ($(#[$meta:meta])* $name:ident { $($(#[$vmeta:meta])* $variant:ident = $text:literal),+ $(,)? }) => {
+        $(#[$meta])*
+        #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+        pub enum $name {
+            $($(#[$vmeta])* #[serde(rename = $text)] $variant),+
+        }
+
+        impl $name {
+            pub fn as_str(self) -> &'static str {
+                match self {
+                    $(Self::$variant => $text),+
+                }
+            }
+        }
+    };
 }
 
-impl Bias {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Floating => "floating",
-            Self::PullUp => "pull_up",
-            Self::PullDown => "pull_down",
-        }
-    }
+setting! {
+    /// Pull resistor configuration. "No bias" is `floating`, not `none`, because
+    /// RON can read `None` as an absent option.
+    Bias { Floating = "floating", PullUp = "pull_up", PullDown = "pull_down" }
 }
 
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Drive {
-    PushPull,
-    OpenDrain,
+setting! {
+    Drive { PushPull = "push_pull", OpenDrain = "open_drain" }
 }
 
-impl Drive {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::PushPull => "push_pull",
-            Self::OpenDrain => "open_drain",
-        }
-    }
+setting! {
+    Speed { Low = "low", Medium = "medium", High = "high", VeryHigh = "very_high" }
 }
 
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Speed {
-    Low,
-    Medium,
-    High,
-    VeryHigh,
+setting! {
+    Level { Low = "low", High = "high" }
 }
 
-impl Speed {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Low => "low",
-            Self::Medium => "medium",
-            Self::High => "high",
-            Self::VeryHigh => "very_high",
-        }
-    }
-}
-
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Level {
-    Low,
-    High,
-}
-
-impl Level {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Low => "low",
-            Self::High => "high",
-        }
-    }
-}
-
-/// The role of a pin that is not carrying a peripheral signal.
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Mode {
-    GpioIn,
-    GpioOut,
-    Analog,
-    /// No GPIO role (SWD and similar), listed so the pin does not show as free.
-    Reserved,
-}
-
-impl Mode {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::GpioIn => "gpio_in",
-            Self::GpioOut => "gpio_out",
-            Self::Analog => "analog",
-            Self::Reserved => "reserved",
-        }
-    }
-}
-
-#[cfg(all(test, feature = "json"))]
-mod tests {
-    use super::*;
-
-    fn serde_name<T: Serialize>(value: T) -> String {
-        serde_json::to_value(value)
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .to_owned()
-    }
-
-    #[test]
-    fn as_str_matches_serde_names() {
-        for v in [Bias::Floating, Bias::PullUp, Bias::PullDown] {
-            assert_eq!(v.as_str(), serde_name(v));
-        }
-        for v in [Drive::PushPull, Drive::OpenDrain] {
-            assert_eq!(v.as_str(), serde_name(v));
-        }
-        for v in [Speed::Low, Speed::Medium, Speed::High, Speed::VeryHigh] {
-            assert_eq!(v.as_str(), serde_name(v));
-        }
-        for v in [Level::Low, Level::High] {
-            assert_eq!(v.as_str(), serde_name(v));
-        }
-        for v in [Mode::GpioIn, Mode::GpioOut, Mode::Analog, Mode::Reserved] {
-            assert_eq!(v.as_str(), serde_name(v));
-        }
+setting! {
+    /// The role of a pin that is not carrying a peripheral signal.
+    Mode {
+        GpioIn = "gpio_in",
+        GpioOut = "gpio_out",
+        Analog = "analog",
+        /// No GPIO role (SWD and similar), listed so the pin does not show as free.
+        Reserved = "reserved",
     }
 }
