@@ -137,7 +137,8 @@ impl From<FormatArg> for Format {
 
 #[derive(Args)]
 pub struct FmtArgs {
-    /// Report files that would change instead of rewriting them.
+    /// Report files that would change instead of rewriting them. RON files
+    /// with comments are skipped, never failed.
     #[arg(long)]
     pub check: bool,
     /// Files to format. Defaults to the project's files and its pindef.

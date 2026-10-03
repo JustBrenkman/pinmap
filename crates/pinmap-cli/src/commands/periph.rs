@@ -2,11 +2,11 @@ use std::fmt::Write as _;
 
 use anyhow::bail;
 use indexmap::{IndexMap, IndexSet};
-use pinmap_core::{Origin, Resolved};
+use pinmap_core::{Origin, Resolved, suggest};
 use pinmap_model::{Bias, Drive, Mux, PinId, Speed};
 use serde::Serialize;
 
-use crate::output::{Ctx, Exit, Render, config, dash, mux_text, suggest, table};
+use crate::output::{Ctx, Exit, Render, config, dash, mux_text, table};
 use crate::project;
 
 #[derive(Serialize)]

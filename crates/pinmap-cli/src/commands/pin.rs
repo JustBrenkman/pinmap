@@ -1,12 +1,13 @@
 use std::fmt::Write as _;
 
 use anyhow::{anyhow, bail};
-use pinmap_core::{Origin, Resolved, Usage};
+use indexmap::IndexSet;
+use pinmap_core::{Origin, Resolved, Usage, suggest};
 use pinmap_model::{Bias, Drive, Level, Mux, Pin, PinId, Port, Speed};
 use serde::Serialize;
 
 use crate::args::PinListArgs;
-use crate::output::{Ctx, Exit, Render, config, dash, mux_text, suggest, table};
+use crate::output::{Ctx, Exit, Render, config, dash, mux_text, table};
 use crate::project;
 
 #[derive(Serialize)]
@@ -74,6 +75,21 @@ pub fn parse_signal(text: &str) -> anyhow::Result<(&str, &str)> {
 pub fn list(ctx: &Ctx, args: &PinListArgs) -> anyhow::Result<Exit> {
     let can = args.can.as_deref().map(parse_signal).transpose()?;
     let r = project::load_resolved(ctx)?;
+    if let Some((periph, signal)) = can
+        && r.pins_with_function(periph, signal).next().is_none()
+    {
+        let mut names: IndexSet<String> = IndexSet::new();
+        for pin in r.pindef.pins.values() {
+            for f in &pin.functions {
+                names.insert(format!("{}.{}", f.periph, f.name));
+            }
+        }
+        let wanted = format!("{periph}.{signal}");
+        match suggest(&wanted, names.iter().map(String::as_str)) {
+            Some(name) => bail!("no pin can carry {wanted}; did you mean {name}?"),
+            None => bail!("no pin can carry {wanted}; see `pinmap periph show {periph}`"),
+        }
+    }
     let mut pins = Vec::new();
     for (id, pin) in &r.pindef.pins {
         let uses = r.uses(id.as_str());

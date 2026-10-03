@@ -124,3 +124,15 @@ fn pin_show_suggests_near_typos() {
     assert_eq!(run.code, 2);
     assert!(run.stderr.contains("did you mean PA5?"), "{}", run.stderr);
 }
+
+#[test]
+fn can_with_unknown_signal_is_exit_2() {
+    let args = ["pin", "list", "--can", "SPI1.MOSX"];
+    let run = pinmap(&fixtures().join("json"), &args);
+    assert_eq!(run.code, 2);
+    assert!(
+        run.stderr.contains("did you mean SPI1.MOSI?"),
+        "{}",
+        run.stderr
+    );
+}

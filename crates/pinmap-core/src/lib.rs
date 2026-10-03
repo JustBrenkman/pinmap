@@ -8,6 +8,7 @@ mod discover;
 mod load;
 mod resolve;
 mod rules;
+mod suggest;
 
 pub use diagnostic::{Counts, Diagnostic, Severity, sort};
 pub use discover::{DiscoverError, discover_root};
@@ -15,3 +16,4 @@ pub use load::{LoadedPinAsg, LoadedPinDef, Project, load};
 pub use resolve::{
     Origin, Resolved, ResolvedPeriph, ResolvedPin, ResolvedSignal, Usage, open, resolve,
 };
+pub use suggest::suggest;
