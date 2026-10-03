@@ -1,0 +1,32 @@
+{
+  "schema": "pinmap/v1",
+  "kind": "pindef",
+  "device": {
+    "name": "DEMO"
+  },
+  "packages": {
+    "QFN8": {
+      "P1": "1"
+    }
+  },
+  "pins": {
+    "P1": {
+      "functions": [
+        {
+          "periph": "GPIO",
+          "name": "P1",
+          "mux": "fixed"
+        }
+      ]
+    },
+    "P2": {
+      "functions": [
+        {
+          "periph": "GPIO",
+          "name": "P2",
+          "mux": "fixed"
+        }
+      ]
+    }
+  }
+}

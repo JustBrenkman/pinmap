@@ -1,0 +1,19 @@
+{
+  "schema": "pinmap/v1",
+  "kind": "pinasg",
+  "device": "../../json/devices/stm32f407vg",
+  "target": {
+    "package": "LQFP100",
+    "refdes": "U1"
+  },
+  "pins": {
+    "PA4": {
+      "mode": "gpio_out",
+      "net": "LED"
+    },
+    "PB12": {
+      "mode": "gpio_in",
+      "net": "LED"
+    }
+  }
+}

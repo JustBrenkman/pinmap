@@ -1,0 +1,14 @@
+{
+  "schema": "pinmap/v1",
+  "kind": "pinasg",
+  "device": "../../json/devices/stm32f407vg",
+  "target": {
+    "package": "LQFP64",
+    "refdes": "U1"
+  },
+  "pins": {
+    "PA4": {
+      "mode": "gpio_out"
+    }
+  }
+}

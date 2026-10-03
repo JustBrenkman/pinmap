@@ -7,6 +7,7 @@ mod diagnostic;
 mod load;
 mod paths;
 mod resolve;
+mod rules;
 
 pub use diagnostic::{Counts, Diagnostic, Severity, sort};
 pub use load::{LoadedPinAsg, LoadedPinDef, Project, load};

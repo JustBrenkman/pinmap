@@ -1,0 +1,13 @@
+{
+  "schema": "pinmap/v1",
+  "kind": "pinasg",
+  "device": "chip",
+  "target": {
+    "package": "QFN8"
+  },
+  "pins": {
+    "P2": {
+      "mode": "gpio_out"
+    }
+  }
+}

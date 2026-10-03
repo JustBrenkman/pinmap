@@ -5,7 +5,7 @@ use indexmap::{IndexMap, IndexSet};
 use pinmap_model::{Function, Mode, Mux, PinAsgEntry, PinDef, PinId, SignalAsg, Target};
 use serde::Serialize;
 
-use crate::{Diagnostic, Project, load, sort};
+use crate::{Diagnostic, Project, load, rules, sort};
 
 /// Where an entry was written: a file and a logical path inside it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -138,6 +138,7 @@ pub fn resolve(project: &Project) -> (Option<Resolved>, Vec<Diagnostic>) {
     let mut diagnostics = Vec::new();
     merge(project, &mut resolved, &mut diagnostics);
     index(&mut resolved);
+    rules::check(&resolved, &mut diagnostics);
     sort(&mut diagnostics);
     (Some(resolved), diagnostics)
 }

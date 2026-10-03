@@ -1,0 +1,18 @@
+{
+  "schema": "pinmap/v1",
+  "kind": "pinasg",
+  "device": "../../json/devices/stm32f407vg",
+  "target": {
+    "package": "LQFP100",
+    "refdes": "U1"
+  },
+  "peripherals": {
+    "SPI9": {
+      "signals": {
+        "SCK": {
+          "pin": "PA5"
+        }
+      }
+    }
+  }
+}
