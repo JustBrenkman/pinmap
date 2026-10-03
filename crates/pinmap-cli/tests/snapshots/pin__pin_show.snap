@@ -1,0 +1,16 @@
+---
+source: crates/pinmap-cli/tests/pin.rs
+expression: run.stdout
+---
+pin     PA5
+pad     30
+port    A5
+use     SPI1.SCK
+net     IMU_SCK
+config  speed=very_high
+origin  board/revb.pinasg.json  peripherals.SPI1.signals.SCK
+
+FUNCTION  MUX     ASSIGNED
+SPI1.SCK  AF5     yes
+TIM2.CH1  AF1
+DAC.OUT2  analog

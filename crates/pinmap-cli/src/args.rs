@@ -22,6 +22,9 @@ pub struct Cli {
 pub enum Command {
     /// Validate the project.
     Check(CheckArgs),
+    /// Inspect pins.
+    #[command(subcommand)]
+    Pin(PinCommand),
 }
 
 #[derive(Args)]
@@ -29,4 +32,31 @@ pub struct CheckArgs {
     /// Fail on warnings too.
     #[arg(long)]
     pub deny_warnings: bool,
+}
+
+#[derive(Subcommand)]
+pub enum PinCommand {
+    /// List the device's pins with their use and net.
+    List(PinListArgs),
+    /// Show everything about one pin.
+    Show {
+        /// Pin name, for example PA5.
+        pin: String,
+    },
+}
+
+#[derive(Args)]
+pub struct PinListArgs {
+    /// Only pins with a pad that nothing uses.
+    #[arg(long, conflicts_with = "used")]
+    pub free: bool,
+    /// Only pins something uses.
+    #[arg(long)]
+    pub used: bool,
+    /// Only pins that can carry this signal, for example SPI1.SCK.
+    #[arg(long, value_name = "PERIPH.SIGNAL")]
+    pub can: Option<String>,
+    /// Only pins with this net label.
+    #[arg(long)]
+    pub net: Option<String>,
 }

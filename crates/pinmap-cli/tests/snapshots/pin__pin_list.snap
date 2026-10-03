@@ -1,0 +1,16 @@
+---
+source: crates/pinmap-cli/tests/pin.rs
+expression: run.stdout
+---
+PIN   PAD  USE        NET
+PA2   25   USART2.TX  UART_TX_DEBUG
+PA3   26   USART2.RX  UART_RX_DEBUG
+PA4   29   gpio_out   IMU_CS
+PA5   30   SPI1.SCK   IMU_SCK
+PA6   31   SPI1.MISO  IMU_MISO
+PA7   32   SPI1.MOSI  IMU_MOSI
+PA11  70   OTG_FS.DM  USB_D_N
+PA12  71   OTG_FS.DP  USB_D_P
+PA13  72   reserved   SWDIO
+PA14  76   reserved   SWCLK
+PB12  51   gpio_in    BTN_USER

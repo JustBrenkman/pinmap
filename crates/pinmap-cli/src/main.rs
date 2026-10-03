@@ -9,7 +9,7 @@ use std::process::ExitCode;
 
 use clap::Parser;
 
-use args::{Cli, Command};
+use args::{Cli, Command, PinCommand};
 use output::{Ctx, Exit};
 
 fn main() -> ExitCode {
@@ -20,6 +20,8 @@ fn main() -> ExitCode {
     };
     let result = match &cli.command {
         Command::Check(args) => commands::check::run(&ctx, args),
+        Command::Pin(PinCommand::List(args)) => commands::pin::list(&ctx, args),
+        Command::Pin(PinCommand::Show { pin }) => commands::pin::show(&ctx, pin),
     };
     match result {
         Ok(exit) => exit.into(),

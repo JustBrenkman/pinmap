@@ -1,0 +1,11 @@
+---
+source: crates/pinmap-cli/tests/pin.rs
+expression: run.stdout
+---
+PIN   PAD  USE  NET
+PA5   30   -    -
+PA6   31   -    -
+PA7   32   -    -
+PA11  70   -    -
+PA12  71   -    -
+PA14  76   -    -
