@@ -98,3 +98,59 @@ fn json_report() {
     let diff = v["files"][0]["diff"].as_str().unwrap();
     assert!(diff.contains("+    \"SPI1\": {"), "{diff}");
 }
+
+#[test]
+fn pin_prop_note_unassign() {
+    let (dir, board) = empty_project();
+    let d = dir.path();
+    let pin = [
+        "assign",
+        "pin",
+        "PA4",
+        "--mode",
+        "gpio-out",
+        "--initial",
+        "high",
+        "--net",
+        "CS",
+    ];
+    assert_eq!(run(d, &pin).code, 0);
+    assert_eq!(run(d, &["assign", "periph", "SPI1", "SCK=PA5"]).code, 0);
+    let prop = ["prop", "set", "SPI1", "spi-max-frequency", "<8000000>"];
+    assert_eq!(run(d, &prop).code, 0);
+    assert_eq!(run(d, &["note", "PA4", "chip select"]).code, 0);
+    let text = fs::read_to_string(&board).unwrap();
+    assert!(text.contains("\"note\": \"chip select\""), "{text}");
+    assert!(
+        text.contains("\"spi-max-frequency\": \"<8000000>\""),
+        "{text}"
+    );
+
+    assert_eq!(run(d, &["note", "PA4", "--clear"]).code, 0);
+    let unset = ["prop", "unset", "SPI1", "spi-max-frequency"];
+    assert_eq!(run(d, &unset).code, 0);
+    assert_eq!(run(d, &["unassign", "PA4"]).code, 0);
+    assert_eq!(run(d, &["unassign", "SPI1.SCK"]).code, 0);
+    let after = fs::read_to_string(&board).unwrap();
+    assert!(
+        !after.contains("peripherals") && !after.contains("pins"),
+        "{after}"
+    );
+}
+
+#[test]
+fn edit_errors_are_exit_2() {
+    let (dir, _) = empty_project();
+    let r = run(dir.path(), &["assign", "pin", "PA4"]);
+    assert_eq!(r.code, 2);
+    assert!(
+        r.stderr.contains("give it a mode with --mode"),
+        "{}",
+        r.stderr
+    );
+    let r = run(dir.path(), &["unassign", "PA4"]);
+    assert_eq!(r.code, 2);
+    assert!(r.stderr.contains("PA4 is not assigned"), "{}", r.stderr);
+    let r = run(dir.path(), &["note", "PA4"]);
+    assert_eq!(r.code, 2, "note needs TEXT or --clear");
+}

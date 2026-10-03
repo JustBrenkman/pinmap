@@ -28,6 +28,10 @@ fn main() -> ExitCode {
         Command::Fmt(args) => commands::fmt::run(&ctx, args),
         Command::Schema { kind } => commands::schema::run(*kind),
         Command::Assign(AssignCommand::Periph(args)) => commands::edit::assign_periph(&ctx, args),
+        Command::Assign(AssignCommand::Pin(args)) => commands::edit::assign_pin(&ctx, args),
+        Command::Unassign { name, edit } => commands::edit::unassign(&ctx, name, edit),
+        Command::Prop(command) => commands::edit::prop(&ctx, command),
+        Command::Note(args) => commands::edit::note(&ctx, args),
     };
     match result {
         Ok(exit) => exit.into(),

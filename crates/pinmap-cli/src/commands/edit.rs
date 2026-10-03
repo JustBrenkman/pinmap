@@ -3,12 +3,12 @@ use std::path::PathBuf;
 
 use anyhow::anyhow;
 use pinmap_core::{
-    Diagnostic, EditError, EditOptions, Session, Severity, SignalConfig, SignalSpec,
+    Diagnostic, EditError, EditOptions, PinChange, Session, Severity, SignalConfig, SignalSpec,
 };
 use serde::Serialize;
 use similar::TextDiff;
 
-use crate::args::{AssignPeriphArgs, EditFlags};
+use crate::args::{AssignPeriphArgs, AssignPinArgs, EditFlags, NoteArgs, PropCommand};
 use crate::output::{Ctx, Exit, Render, render_diagnostic};
 use crate::project;
 
@@ -162,4 +162,43 @@ pub fn assign_periph(ctx: &Ctx, args: &AssignPeriphArgs) -> anyhow::Result<Exit>
     run_edit(ctx, &args.edit, |s| {
         s.assign_signals(&args.periph, &specs, &config)
     })
+}
+
+pub fn assign_pin(ctx: &Ctx, args: &AssignPinArgs) -> anyhow::Result<Exit> {
+    let change = PinChange {
+        mode: args.mode.map(Into::into),
+        initial: args.initial.map(Into::into),
+        bias: args.bias.map(Into::into),
+        net: args.net.clone(),
+    };
+    run_edit(ctx, &args.edit, |s| {
+        s.assign_pin(&args.pin.as_str().into(), &change)
+    })
+}
+
+pub fn unassign(ctx: &Ctx, name: &str, flags: &EditFlags) -> anyhow::Result<Exit> {
+    run_edit(ctx, flags, |s| s.unassign(name).map(|_| ()))
+}
+
+pub fn prop(ctx: &Ctx, command: &PropCommand) -> anyhow::Result<Exit> {
+    match command {
+        PropCommand::Set {
+            periph,
+            key,
+            value,
+            edit,
+        } => run_edit(ctx, edit, |s| s.set_prop(periph, key, value)),
+        PropCommand::Unset { periph, key, edit } => {
+            run_edit(ctx, edit, |s| s.unset_prop(periph, key))
+        }
+    }
+}
+
+pub fn note(ctx: &Ctx, args: &NoteArgs) -> anyhow::Result<Exit> {
+    let text = if args.clear {
+        None
+    } else {
+        args.text.as_deref()
+    };
+    run_edit(ctx, &args.edit, |s| s.set_note(&args.name, text))
 }

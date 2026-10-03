@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use pinmap_model::{Bias, DocKind, Drive, Format, Speed};
+use pinmap_model::{Bias, DocKind, Drive, Format, Level, Mode, Speed};
 
 /// One source of truth for microcontroller pin assignments.
 #[derive(Parser)]
@@ -38,6 +38,18 @@ pub enum Command {
     /// Assign peripheral signals or pins.
     #[command(subcommand)]
     Assign(AssignCommand),
+    /// Remove a pin's uses, a peripheral, or one PERIPH.SIGNAL.
+    Unassign {
+        /// A pin, a peripheral, or PERIPH.SIGNAL.
+        name: String,
+        #[command(flatten)]
+        edit: EditFlags,
+    },
+    /// Set or remove devicetree properties.
+    #[command(subcommand)]
+    Prop(PropCommand),
+    /// Set or clear a note on a pin entry or a peripheral.
+    Note(NoteArgs),
 }
 
 #[derive(Args)]
@@ -169,6 +181,8 @@ macro_rules! value_enum {
 value_enum!(BiasArg => Bias { Floating, PullUp, PullDown });
 value_enum!(DriveArg => Drive { PushPull, OpenDrain });
 value_enum!(SpeedArg => Speed { Low, Medium, High, VeryHigh });
+value_enum!(LevelArg => Level { Low, High });
+value_enum!(ModeArg => Mode { GpioIn, GpioOut, Analog, Reserved });
 
 #[derive(Args)]
 pub struct EditFlags {
@@ -190,6 +204,8 @@ pub struct EditFlags {
 pub enum AssignCommand {
     /// Assign peripheral signals to pins.
     Periph(AssignPeriphArgs),
+    /// Create or update a pin entry (GPIO, analog, or reserved).
+    Pin(AssignPinArgs),
 }
 
 #[derive(Args)]
@@ -208,6 +224,59 @@ pub struct AssignPeriphArgs {
     /// Slew rate for the listed signals.
     #[arg(long)]
     pub speed: Option<SpeedArg>,
+    #[command(flatten)]
+    pub edit: EditFlags,
+}
+
+#[derive(Args)]
+pub struct AssignPinArgs {
+    /// Pin name, for example PA4.
+    pub pin: String,
+    /// Required for a pin that has no entry yet.
+    #[arg(long)]
+    pub mode: Option<ModeArg>,
+    /// Output level at reset.
+    #[arg(long)]
+    pub initial: Option<LevelArg>,
+    /// Pull resistor.
+    #[arg(long)]
+    pub bias: Option<BiasArg>,
+    /// Net label in the schematic.
+    #[arg(long)]
+    pub net: Option<String>,
+    #[command(flatten)]
+    pub edit: EditFlags,
+}
+
+#[derive(Subcommand)]
+pub enum PropCommand {
+    /// Set a devicetree property, for example spi-max-frequency '<8000000>'.
+    Set {
+        periph: String,
+        key: String,
+        value: String,
+        #[command(flatten)]
+        edit: EditFlags,
+    },
+    /// Remove a devicetree property.
+    Unset {
+        periph: String,
+        key: String,
+        #[command(flatten)]
+        edit: EditFlags,
+    },
+}
+
+#[derive(Args)]
+pub struct NoteArgs {
+    /// A pin with an entry, or a peripheral.
+    pub name: String,
+    /// The note.
+    #[arg(required_unless_present = "clear", conflicts_with = "clear")]
+    pub text: Option<String>,
+    /// Remove the note.
+    #[arg(long)]
+    pub clear: bool,
     #[command(flatten)]
     pub edit: EditFlags,
 }
