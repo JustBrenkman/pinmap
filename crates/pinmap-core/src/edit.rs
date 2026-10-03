@@ -95,10 +95,10 @@ pub enum EditError {
         .path.display()
     )]
     CommentLoss { path: PathBuf },
-    #[error("{source}; already updated: {}", list_or_none(.updated.iter().map(|p| p.display())))]
+    #[error("{error}; already updated: {}", list_or_none(.updated.iter().map(|p| p.display())))]
     PartialWrite {
         updated: Vec<PathBuf>,
-        source: ModelError,
+        error: ModelError,
     },
     #[error(transparent)]
     Model(#[from] ModelError),
@@ -141,7 +141,7 @@ impl Session {
             .map(|f| {
                 fs::read_to_string(&f.disk_path).map_err(|err| ModelError::At {
                     path: f.path.clone(),
-                    source: Box::new(ModelError::Io(err)),
+                    error: Box::new(ModelError::Io(err)),
                 })
             })
             .collect::<Result<_, _>>()?;
@@ -388,9 +388,9 @@ impl Session {
                 .collect::<Result<Vec<_>, _>>()?;
             let mut updated = Vec::new();
             for (staged, (_, change)) in staged.into_iter().zip(&changes) {
-                staged.commit().map_err(|source| EditError::PartialWrite {
+                staged.commit().map_err(|error| EditError::PartialWrite {
                     updated: updated.clone(),
-                    source,
+                    error,
                 })?;
                 updated.push(change.path.clone());
             }

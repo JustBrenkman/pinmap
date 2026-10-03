@@ -22,11 +22,8 @@ pub enum DiscoverError {
     )]
     ManyRoots { roots: Vec<PathBuf> },
 
-    #[error("cannot read {}: {source}", .dir.display())]
-    Io {
-        dir: PathBuf,
-        source: std::io::Error,
-    },
+    #[error("cannot read {}: {error}", .dir.display())]
+    Io { dir: PathBuf, error: std::io::Error },
 }
 
 fn list(paths: &[PathBuf]) -> String {
@@ -77,9 +74,9 @@ pub fn discover_root(dir: &Path) -> Result<PathBuf, DiscoverError> {
 
 /// Walks the starting directory, which must be readable.
 fn walk(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), DiscoverError> {
-    let entries = fs::read_dir(dir).map_err(|source| DiscoverError::Io {
+    let entries = fs::read_dir(dir).map_err(|error| DiscoverError::Io {
         dir: dir.to_path_buf(),
-        source,
+        error,
     })?;
     visit_entries(entries, out);
     Ok(())

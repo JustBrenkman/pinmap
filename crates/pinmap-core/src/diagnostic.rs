@@ -82,8 +82,8 @@ impl Diagnostic {
     /// [`Diagnostic::file`].
     pub fn from_model(err: &ModelError) -> Self {
         match err {
-            ModelError::At { path, source } => {
-                Self::error(err.code(), source.to_string()).in_file(path)
+            ModelError::At { path, error } => {
+                Self::error(err.code(), error.to_string()).in_file(path)
             }
             other => Self::error(other.code(), other.to_string()),
         }

@@ -105,3 +105,18 @@ fn list_emitters() {
     assert_eq!(value["emitters"][0]["id"], "markdown");
     assert_eq!(value["emitters"][0]["options"][0]["name"], "free-pins");
 }
+
+#[cfg(unix)]
+#[test]
+fn errors_name_their_cause_once() {
+    let dir = copy_project();
+    fs::create_dir(dir.path().join("taken")).unwrap();
+    let run = pinmap(dir.path(), &["emit", "--to", "json", "-o", "taken"]);
+    assert_eq!(run.code, 2);
+    assert_eq!(
+        run.stderr.matches("Is a directory").count(),
+        1,
+        "{}",
+        run.stderr
+    );
+}

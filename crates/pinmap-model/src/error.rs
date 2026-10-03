@@ -37,13 +37,15 @@ pub enum ModelError {
     #[error("support for {format} is not compiled in")]
     FormatDisabled { format: Format },
 
-    #[error("{0}")]
+    #[error(transparent)]
     Io(#[from] std::io::Error),
 
-    #[error("{}: {source}", .path.display())]
+    /// `error` while handling the file at `path`. The message includes the
+    /// inner error, so it is not reported again as a separate cause.
+    #[error("{}: {error}", .path.display())]
     At {
         path: PathBuf,
-        source: Box<ModelError>,
+        error: Box<ModelError>,
     },
 }
 
@@ -59,14 +61,14 @@ impl ModelError {
             Self::Parse { .. } => "PM0006",
             Self::FormatDisabled { .. } => "PM0007",
             Self::Io(_) => "PM0008",
-            Self::At { source, .. } => source.code(),
+            Self::At { error, .. } => error.code(),
         }
     }
 
     pub(crate) fn at(self, path: impl Into<PathBuf>) -> Self {
         Self::At {
             path: path.into(),
-            source: Box::new(self),
+            error: Box::new(self),
         }
     }
 }
