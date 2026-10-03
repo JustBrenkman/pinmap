@@ -1,0 +1,14 @@
+{
+  "schema": "pinmap/v1",
+  "kind": "pinasg",
+  "device": "../../ron/devices/stm32f407vg",
+  "target": {
+    "package": "LQFP100",
+    "refdes": "U2"
+  },
+  "pins": {
+    "PB12": {
+      "mode": "gpio_in"
+    }
+  }
+}

@@ -4,5 +4,8 @@
 //! pindef, merges them into a [`Resolved`] view, and runs every check.
 
 mod diagnostic;
+mod load;
+mod paths;
 
 pub use diagnostic::{Counts, Diagnostic, Severity, sort};
+pub use load::{LoadedPinAsg, LoadedPinDef, Project, load};
