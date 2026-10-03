@@ -7,7 +7,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use pinmap_model::{
-    DocKind, Document, Format, PinAsg, PinDef, classify, from_str, read, resolve_ref, to_string,
+    AnyDoc, DocKind, Document, Format, PinAsg, PinDef, classify, from_str, read, read_any,
+    resolve_ref, to_string,
 };
 
 const PINDEFS: [&str; 1] = ["devices/stm32f407vg.pindef"];
@@ -149,4 +150,30 @@ fn every_assigned_pin_has_a_matching_function_in_the_pindef() {
             assert!(pads.contains_key(pin.as_str()));
         }
     }
+}
+
+#[test]
+fn read_any_dispatches_on_the_file_name() {
+    let def = read_any(fixtures().join("json/devices/stm32f407vg.pindef.json")).unwrap();
+    assert_eq!(def.kind(), DocKind::Pindef);
+
+    let asg = read_any(fixtures().join("ron/board/revb.pinasg.ron")).unwrap();
+    assert_eq!(asg.kind(), DocKind::Pinasg);
+    assert_eq!(
+        asg.to_string(Format::Ron).unwrap(),
+        text("ron", "board/revb.pinasg", Format::Ron)
+    );
+    assert_eq!(
+        asg.to_string(Format::Json).unwrap(),
+        text("json", "board/revb.pinasg", Format::Json)
+    );
+}
+
+#[test]
+fn any_doc_from_str_checks_the_kind() {
+    let json = text("json", "board/usb.pinasg", Format::Json);
+    let doc = AnyDoc::from_str(&json, DocKind::Pinasg, Format::Json).unwrap();
+    assert!(matches!(doc, AnyDoc::Pinasg(_)));
+    let err = AnyDoc::from_str(&json, DocKind::Pindef, Format::Json).unwrap_err();
+    assert_eq!(err.code(), "PM0002");
 }

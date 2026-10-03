@@ -31,7 +31,7 @@ mod schema;
 
 pub use common::{Bias, Drive, Level, Mode, PinId, SCHEMA_V1, SchemaVersion, Speed};
 pub use error::ModelError;
-pub use io::{Document, from_str, read, to_string, write};
+pub use io::{AnyDoc, Document, from_str, read, read_any, to_string, write};
 pub use kind::{DocKind, Format, classify};
 pub use pinasg::{PeriphAsg, PinAsg, PinAsgEntry, SignalAsg, Target};
 pub use pindef::{Device, Function, Meta, Mux, Pin, PinDef, Port};

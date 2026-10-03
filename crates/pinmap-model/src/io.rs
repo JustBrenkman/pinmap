@@ -95,6 +95,49 @@ pub fn write<T: Document>(path: impl AsRef<Path>, doc: &T) -> Result<(), ModelEr
     save().map_err(|err| at(err, path))
 }
 
+/// Either kind of document, for code that handles both, such as conversion.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AnyDoc {
+    Pindef(PinDef),
+    Pinasg(PinAsg),
+}
+
+impl AnyDoc {
+    pub fn kind(&self) -> DocKind {
+        match self {
+            Self::Pindef(_) => DocKind::Pindef,
+            Self::Pinasg(_) => DocKind::Pinasg,
+        }
+    }
+
+    /// Parses a document whose kind is known only at run time.
+    pub fn from_str(text: &str, kind: DocKind, format: Format) -> Result<Self, ModelError> {
+        Ok(match kind {
+            DocKind::Pindef => Self::Pindef(from_str(text, format)?),
+            DocKind::Pinasg => Self::Pinasg(from_str(text, format)?),
+        })
+    }
+
+    /// Serializes to canonical text, as [`to_string`] does.
+    pub fn to_string(&self, format: Format) -> Result<String, ModelError> {
+        match self {
+            Self::Pindef(doc) => to_string(doc, format),
+            Self::Pinasg(doc) => to_string(doc, format),
+        }
+    }
+}
+
+/// Reads a document of either kind. The file name decides kind and format.
+pub fn read_any(path: impl AsRef<Path>) -> Result<AnyDoc, ModelError> {
+    let path = path.as_ref();
+    let load = || {
+        let (kind, format) = classify(path)?;
+        let text = fs::read_to_string(path)?;
+        AnyDoc::from_str(&text, kind, format)
+    };
+    load().map_err(|err| at(err, path))
+}
+
 fn at(err: ModelError, path: &Path) -> ModelError {
     match err {
         // Already names the path.
