@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 pub const SCHEMA_V1: &str = "pinmap/v1";
 
 /// The `schema` field of a document.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct SchemaVersion(String);
@@ -31,6 +32,7 @@ impl Default for SchemaVersion {
 }
 
 /// A logical pin name such as `PA5`, as the vendor spells it.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct PinId(String);
@@ -71,6 +73,7 @@ impl fmt::Display for PinId {
 
 /// Pull resistor configuration. "No bias" is `floating`, not `none`, because
 /// RON can read `None` as an absent option.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Bias {
@@ -79,6 +82,7 @@ pub enum Bias {
     PullDown,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Drive {
@@ -86,6 +90,7 @@ pub enum Drive {
     OpenDrain,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Speed {
@@ -95,6 +100,7 @@ pub enum Speed {
     VeryHigh,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Level {
@@ -103,6 +109,7 @@ pub enum Level {
 }
 
 /// The role of a pin that is not carrying a peripheral signal.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Mode {

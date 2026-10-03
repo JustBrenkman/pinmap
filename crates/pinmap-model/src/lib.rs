@@ -26,6 +26,8 @@ mod kind;
 mod pinasg;
 mod pindef;
 mod reference;
+#[cfg(feature = "schema")]
+mod schema;
 
 pub use common::{Bias, Drive, Level, Mode, PinId, SCHEMA_V1, SchemaVersion, Speed};
 pub use error::ModelError;
@@ -34,3 +36,5 @@ pub use kind::{DocKind, Format, classify};
 pub use pinasg::{PeriphAsg, PinAsg, PinAsgEntry, SignalAsg, Target};
 pub use pindef::{Device, Function, Meta, Mux, Pin, PinDef, Port};
 pub use reference::resolve_ref;
+#[cfg(feature = "schema")]
+pub use schema::json_schema;

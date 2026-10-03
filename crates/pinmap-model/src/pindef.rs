@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::{DocKind, PinId, SchemaVersion};
 
 /// Pin definitions: what a chip can do. Normally written by an importer.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub struct PinDef {
@@ -19,6 +20,7 @@ pub struct PinDef {
     pub pins: IndexMap<PinId, Pin>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub struct Meta {
@@ -27,6 +29,7 @@ pub struct Meta {
     pub generated: bool,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub struct Device {
@@ -37,6 +40,7 @@ pub struct Device {
     pub family: Option<String>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub struct Pin {
@@ -46,6 +50,7 @@ pub struct Pin {
     pub functions: Vec<Function>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub struct Port {
@@ -55,6 +60,7 @@ pub struct Port {
 
 /// One thing a pin can do. Importers split the vendor's signal string into
 /// `periph` and `name`, for example `SPI1` and `SCK`.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub struct Function {
@@ -64,6 +70,7 @@ pub struct Function {
 }
 
 /// How a function is selected on a pin.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Mux {

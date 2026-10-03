@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::{Bias, DocKind, Drive, Level, Mode, PinId, SchemaVersion, Speed};
 
 /// Pin assignments: what a board chose.
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub struct PinAsg {
@@ -25,6 +26,7 @@ pub struct PinAsg {
     pub pins: IndexMap<PinId, PinAsgEntry>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub struct Target {
@@ -34,6 +36,7 @@ pub struct Target {
     pub refdes: Option<String>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub struct PeriphAsg {
@@ -45,6 +48,7 @@ pub struct PeriphAsg {
     pub note: Option<String>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub struct SignalAsg {
@@ -59,6 +63,7 @@ pub struct SignalAsg {
     pub speed: Option<Speed>,
 }
 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub struct PinAsgEntry {

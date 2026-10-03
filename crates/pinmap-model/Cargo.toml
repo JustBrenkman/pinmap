@@ -14,13 +14,17 @@ categories.workspace = true
 default = ["json", "ron"]
 json = ["dep:serde_json"]
 ron = ["dep:ron"]
+schema = ["dep:schemars"]
 
 [dependencies]
 indexmap.workspace = true
 ron = { workspace = true, optional = true }
+schemars = { workspace = true, optional = true }
 serde.workspace = true
 serde_json = { workspace = true, optional = true }
 thiserror.workspace = true
 
 [dev-dependencies]
+jsonschema.workspace = true
+serde_json.workspace = true
 tempfile.workspace = true
