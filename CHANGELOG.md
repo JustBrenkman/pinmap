@@ -13,5 +13,6 @@ All notable changes to this project are documented here. The format follows [Kee
 - `pinmap-model`: optional `schema` feature, `AnyDoc`, and RON comment detection.
 - Edit commands: `assign periph`, `assign pin`, `unassign`, `prop set|unset`, `note`, with `--dry-run` diffs, rejection of edits that add errors (`--allow-errors`), a RON comment guard (`--allow-comment-loss`), and `--file` for where new entries go.
 - Atomic writes for every command that changes files.
+- `pinmap emit --to markdown|json` with `-o`, `--out-dir`, `-O free-pins=true`, and `--allow-errors`; `pinmap list emitters`; the `Emitter` interface in `pinmap-core`.
 - "Did you mean" suggestions for mistyped pins, peripherals, and `--can` signals.
 - Workspace layout with stub crates for the loader, devicetree AST, importers, emitters, and CLI.

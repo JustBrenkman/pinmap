@@ -57,11 +57,16 @@ The CLI tests compare output against [insta](https://insta.rs) snapshots in `cra
 
 ## Adding an importer or emitter
 
-These are the main extension points. Neither trait exists yet; once `pinmap-core` defines them, the steps will be:
+These are the main extension points.
 
-1. Add a module in `pinmap-import` or `pinmap-emit` and implement the trait.
-2. Add one `register()` line in `pinmap-cli`, behind a cargo feature.
-3. Add a fixture and a golden output file.
+For an emitter:
+
+1. Add a module in `crates/pinmap-emit/src/` behind a new cargo feature, and implement `pinmap_core::Emitter`. Emitters return files in memory; they never write. Use the shared rows in `table.rs` where they fit, declare options with `OptionSpec`, and read them with `bool_option`.
+2. Add it to `pinmap_emit::all()`. The CLI picks it up from there for `emit --to` and `list emitters`.
+3. Add a snapshot test in `crates/pinmap-emit/tests/emit.rs`; the conformance test there runs every emitter over the fixtures in each storage format.
+4. Report anything the format cannot express in `EmitOutput::unsupported`, never by dropping it silently.
+
+The importer trait does not exist yet; importers are deferred until a project needs one.
 
 Importer quality matters more than emitter breadth: an incomplete function list makes every later check wrong.
 

@@ -1,0 +1,8 @@
+---
+source: crates/pinmap-cli/tests/emit.rs
+expression: run.stdout
+---
+markdown  Pinout document: a pin table and a section per peripheral
+    -O free-pins=false  Also list pins with a pad that nothing uses
+json  Flat pin table for scripts: pin, pad, function, mux, net
+    -O free-pins=false  Also list pins with a pad that nothing uses

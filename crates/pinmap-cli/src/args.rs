@@ -53,6 +53,15 @@ pub enum Command {
     Note(NoteArgs),
     /// Generate output, such as a pinout document, from the project.
     Emit(EmitArgs),
+    /// Show what this build of pinmap can do.
+    #[command(subcommand)]
+    List(ListCommand),
+}
+
+#[derive(Subcommand)]
+pub enum ListCommand {
+    /// The output formats `pinmap emit --to` accepts, with their options.
+    Emitters,
 }
 
 #[derive(Args)]

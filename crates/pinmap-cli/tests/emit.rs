@@ -94,3 +94,14 @@ fn unknown_option_is_exit_2() {
     assert_eq!(run.code, 2);
     assert!(run.stderr.contains("expected KEY=VALUE"), "{}", run.stderr);
 }
+
+#[test]
+fn list_emitters() {
+    let run = pinmap(&fixtures(), &["list", "emitters"]);
+    assert_eq!(run.code, 0, "{}", run.stderr);
+    insta::assert_snapshot!(run.stdout);
+    let run = pinmap(&fixtures(), &["list", "emitters", "--json"]);
+    let value: serde_json::Value = serde_json::from_str(&run.stdout).unwrap();
+    assert_eq!(value["emitters"][0]["id"], "markdown");
+    assert_eq!(value["emitters"][0]["options"][0]["name"], "free-pins");
+}

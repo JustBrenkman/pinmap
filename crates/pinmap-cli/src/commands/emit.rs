@@ -106,3 +106,58 @@ fn write(path: &Path, contents: &str) -> anyhow::Result<()> {
     write_atomic(path, contents)?;
     Ok(())
 }
+
+#[derive(Serialize)]
+pub struct OptionInfo {
+    pub name: &'static str,
+    pub help: &'static str,
+    pub default: &'static str,
+}
+
+#[derive(Serialize)]
+pub struct EmitterInfo {
+    pub id: &'static str,
+    pub description: &'static str,
+    pub options: Vec<OptionInfo>,
+}
+
+#[derive(Serialize)]
+pub struct EmitterList {
+    pub emitters: Vec<EmitterInfo>,
+}
+
+impl Render for EmitterList {
+    fn render(&self, out: &mut String) {
+        for emitter in &self.emitters {
+            let _ = writeln!(out, "{}  {}", emitter.id, emitter.description);
+            for option in &emitter.options {
+                let _ = writeln!(
+                    out,
+                    "    -O {}={}  {}",
+                    option.name, option.default, option.help
+                );
+            }
+        }
+    }
+}
+
+pub fn list(ctx: &Ctx) -> anyhow::Result<Exit> {
+    let emitters = pinmap_emit::all()
+        .iter()
+        .map(|e| EmitterInfo {
+            id: e.id(),
+            description: e.description(),
+            options: e
+                .options()
+                .iter()
+                .map(|o| OptionInfo {
+                    name: o.name,
+                    help: o.help,
+                    default: o.default,
+                })
+                .collect(),
+        })
+        .collect();
+    ctx.emit(&EmitterList { emitters })?;
+    Ok(Exit::Ok)
+}

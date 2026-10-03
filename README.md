@@ -73,7 +73,7 @@ vendor data ──► IMPORTERS ──► *.pindef.* ─┐
 | `pinmap-core` | Loader, resolver, `check`, edit pipeline; later `verify` and the `Importer`/`Emitter` traits | Partial |
 | `pinmap-dts` | Devicetree AST and printer shared by the Zephyr and Linux emitters | Stub |
 | `pinmap-import` | Importers: STM32, KiCad symbol libraries, SVD | Stub |
-| `pinmap-emit` | Emitters: Zephyr, Linux, Markdown, Mermaid, JSON | Stub |
+| `pinmap-emit` | Emitters: Markdown and JSON today; Zephyr, Linux, Mermaid later | Partial |
 | `pinmap-cli` | The `pinmap` binary | Inspection and editing |
 
 The full design, including the data model, validation rules, and schematic verification algorithm, is in [docs/design.md](docs/design.md).
@@ -120,19 +120,30 @@ pinmap assign periph SPI1 MOSI=PA6 --dry-run     # preview the diff and any new 
 
 Every edit is checked before it is written. An edit that would add an error is rejected: nothing is written and the command exits 1 (`--allow-errors` writes anyway). Errors that were already there don't block unrelated edits. Changed files are rewritten in canonical form, atomically, in whichever file defines the entry; new entries go to the root file or to `--file`. pinmap refuses to rewrite a RON file that contains comments, since rewriting would drop them, unless you pass `--allow-comment-loss`. For the same reason, `fmt --check` skips commented RON files instead of failing them.
 
-Still to come: `import`, `verify`, and `emit`.
+### Output
+
+```sh
+pinmap emit --to markdown -o docs/pinout.md      # pin table plus a section per peripheral
+pinmap emit --to json > pinout.json              # flat [{pin, pad, function, mux, net}] table
+pinmap emit --to markdown -O free-pins=true      # include unused pins
+pinmap list emitters                             # formats and their options
+```
+
+`emit` refuses to run on a project with errors (exit 1), so a broken assignment never ends up in your docs; `--allow-errors` overrides. Output is identical whether your files are JSON, RON, or a mix.
+
+Still to come: Zephyr devicetree output, `verify`, and importers.
 
 ## Roadmap
 
 | Phase | Scope | State |
 |---|---|---|
 | 1. Core | Model, loader with imports, resolver, `check`, inspection, edit pipeline | Done |
-| 2. STM32 slice | STM32 importer, devicetree AST, Zephyr and Markdown emitters | Planned |
+| 2. Output | Emitter interface, Markdown and JSON emitters; later the devicetree AST and Zephyr | Markdown and JSON done |
 | 3. Verify | KiCad netlist reader, KiCad library importer, `verify` | Planned |
 | 4. Second vendor | nRF, then freeze the `pinmap/v1` schema | Planned |
 | 5. Breadth | Linux emitter, Mermaid, JSON adapters, SVD | Planned |
 
-The schema is not frozen until phase 4. Expect breaking changes to the file formats before then.
+Importers (STM32 and others) are deferred: pindef files can be written by hand, and importers will be added as they are needed. The schema is not frozen until phase 4. Expect breaking changes to the file formats before then.
 
 ## Building
 

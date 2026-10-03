@@ -476,7 +476,9 @@ Same AST, different dialect (`pinctrl-0` plus the family's pinmux macros, such a
 
 ### Documentation and diagrams
 
-- **Markdown:** pin table (pin, pad, function, mux, net, config, note). This is the spreadsheet replacement.
+Markdown and JSON are implemented (`pinmap emit --to markdown|json`). Emitters register through `pinmap_emit::all()`, which the CLI reads for `--to` and `pinmap list emitters`; `-O key=value` options are declared per emitter and validated before it runs. `emit` refuses a project with errors unless `--allow-errors`.
+
+- **Markdown:** pin table (pin, pad, function, mux, net, config, note), then a section per peripheral with its note, signals, and properties. This is the spreadsheet replacement.
 - **Mermaid:** peripheral -> pin -> net-label edges, one diagram per peripheral (whole-chip diagrams exceed practical limits).
 - **JSON:** flat `[{pin, pad, function, mux, net}]` table for any script. This is also the starting point for Wokwi or pinout-editor adapters, each of which is a transform of that table. The pinout-editor input format is not confirmed yet, so treat it as an adapter slot.
 
