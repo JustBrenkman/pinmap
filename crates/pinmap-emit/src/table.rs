@@ -17,8 +17,11 @@ pub(crate) struct Row<'a> {
     pub function: Option<String>,
     pub mux: Option<&'a Mux>,
     pub net: Option<&'a str>,
+    // Only the Markdown emitter shows settings and notes.
+    #[cfg_attr(not(feature = "markdown"), allow(dead_code))]
     pub settings: Vec<String>,
     /// The pin entry's note. Peripheral notes belong to the peripheral.
+    #[cfg_attr(not(feature = "markdown"), allow(dead_code))]
     pub note: Option<&'a str>,
 }
 

@@ -60,3 +60,40 @@ fn cells_are_escaped() {
     let text = emit("markdown", &root, &[]);
     assert!(text.contains("a \\| b c"), "{text}");
 }
+
+#[test]
+fn json_table() {
+    let root = fixtures().join("json/board/revb.pinasg.json");
+    insta::assert_snapshot!(emit("json", &root, &[]));
+}
+
+#[test]
+fn json_free_pins() {
+    let root = fixtures().join("check/diamond/root.pinasg.json");
+    let text = emit("json", &root, &[("free-pins", "true")]);
+    let rows: serde_json::Value = serde_json::from_str(&text).unwrap();
+    let pa5 = rows
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["pin"] == "PA5")
+        .expect("free pin listed");
+    assert_eq!(pa5["pad"], "30");
+    assert!(pa5["function"].is_null());
+}
+
+#[test]
+fn output_is_the_same_for_every_storage_format() {
+    for emitter in pinmap_emit::all() {
+        let id = emitter.id();
+        let json = emit(id, &fixtures().join("json/board/revb.pinasg.json"), &[]);
+        for root in ["ron/board/revb.pinasg.ron", "mixed/board/revb.pinasg.ron"] {
+            assert_eq!(emit(id, &fixtures().join(root), &[]), json, "{id}: {root}");
+        }
+        let again = emit(id, &fixtures().join("json/board/revb.pinasg.json"), &[]);
+        assert_eq!(again, json, "{id}: not deterministic");
+        emit(id, &fixtures().join("check/diamond/root.pinasg.json"), &[]);
+    }
+    let ids: Vec<&str> = pinmap_emit::all().iter().map(|e| e.id()).collect();
+    assert_eq!(ids, ["markdown", "json"]);
+}

@@ -1,0 +1,97 @@
+---
+source: crates/pinmap-emit/tests/emit.rs
+expression: "emit(\"json\", &root, &[])"
+---
+[
+  {
+    "pin": "PA2",
+    "pad": "25",
+    "function": "USART2.TX",
+    "mux": {
+      "af": 7
+    },
+    "net": "UART_TX_DEBUG"
+  },
+  {
+    "pin": "PA3",
+    "pad": "26",
+    "function": "USART2.RX",
+    "mux": {
+      "af": 7
+    },
+    "net": "UART_RX_DEBUG"
+  },
+  {
+    "pin": "PA4",
+    "pad": "29",
+    "function": "gpio_out",
+    "mux": null,
+    "net": "IMU_CS"
+  },
+  {
+    "pin": "PA5",
+    "pad": "30",
+    "function": "SPI1.SCK",
+    "mux": {
+      "af": 5
+    },
+    "net": "IMU_SCK"
+  },
+  {
+    "pin": "PA6",
+    "pad": "31",
+    "function": "SPI1.MISO",
+    "mux": {
+      "af": 5
+    },
+    "net": "IMU_MISO"
+  },
+  {
+    "pin": "PA7",
+    "pad": "32",
+    "function": "SPI1.MOSI",
+    "mux": {
+      "af": 5
+    },
+    "net": "IMU_MOSI"
+  },
+  {
+    "pin": "PA11",
+    "pad": "70",
+    "function": "OTG_FS.DM",
+    "mux": {
+      "af": 10
+    },
+    "net": "USB_D_N"
+  },
+  {
+    "pin": "PA12",
+    "pad": "71",
+    "function": "OTG_FS.DP",
+    "mux": {
+      "af": 10
+    },
+    "net": "USB_D_P"
+  },
+  {
+    "pin": "PA13",
+    "pad": "72",
+    "function": "reserved",
+    "mux": null,
+    "net": "SWDIO"
+  },
+  {
+    "pin": "PA14",
+    "pad": "76",
+    "function": "reserved",
+    "mux": null,
+    "net": "SWCLK"
+  },
+  {
+    "pin": "PB12",
+    "pad": "51",
+    "function": "gpio_in",
+    "mux": null,
+    "net": "BTN_USER"
+  }
+]
