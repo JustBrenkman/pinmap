@@ -73,13 +73,22 @@ pub fn to_string<T: Document>(doc: &T, format: Format) -> Result<String, ModelEr
 /// Reads a document from a file. The file name decides the format and must
 /// name the kind that `T` represents.
 pub fn read<T: Document>(path: impl AsRef<Path>) -> Result<T, ModelError> {
-    let path = path.as_ref();
+    read_from(&path, &path)
+}
+
+/// Reads a document whose kind and format come from the file name `named`
+/// and whose contents come from `disk`. They differ when `named` is a
+/// symlink to a file with another name.
+pub fn read_from<T: Document>(
+    named: impl AsRef<Path>,
+    disk: impl AsRef<Path>,
+) -> Result<T, ModelError> {
+    let named = named.as_ref();
     let load = || {
-        let format = classify_as::<T>(path)?;
-        let text = fs::read_to_string(path)?;
-        from_str(&text, format)
+        let format = classify_as::<T>(named)?;
+        from_str(&fs::read_to_string(disk)?, format)
     };
-    load().map_err(|err| at(err, path))
+    load().map_err(|err| at(err, named))
 }
 
 /// Writes a document to a file in canonical form. The file name decides the
@@ -199,12 +208,7 @@ fn at(err: ModelError, path: &Path) -> ModelError {
 
 fn classify_as<T: Document>(path: &Path) -> Result<Format, ModelError> {
     let (kind, format) = classify(path)?;
-    if kind != T::KIND {
-        return Err(ModelError::KindMismatch {
-            expected: T::KIND,
-            found: kind,
-        });
-    }
+    expect_kind::<T>(kind)?;
     Ok(format)
 }
 
@@ -214,113 +218,53 @@ fn check_header<T: Document>(schema: &SchemaVersion, kind: DocKind) -> Result<()
             found: schema.as_str().to_owned(),
         });
     }
-    if kind != T::KIND {
-        return Err(ModelError::KindMismatch {
+    expect_kind::<T>(kind)
+}
+
+fn expect_kind<T: Document>(found: DocKind) -> Result<(), ModelError> {
+    if found == T::KIND {
+        Ok(())
+    } else {
+        Err(ModelError::KindMismatch {
             expected: T::KIND,
-            found: kind,
-        });
+            found,
+        })
     }
-    Ok(())
 }
 
 fn parse<T: DeserializeOwned>(text: &str, format: Format) -> Result<T, ModelError> {
-    match format {
-        Format::Json => json::parse(text),
-        Format::Ron => ron::parse(text),
-    }
+    let parsed: Result<T, String> = match format {
+        #[cfg(feature = "json")]
+        Format::Json => serde_json::from_str(text).map_err(|e| e.to_string()),
+        #[cfg(feature = "ron")]
+        Format::Ron => ron::Options::default()
+            // Accept files with or without the `#![enable(implicit_some)]` line.
+            .with_default_extension(ron::extensions::Extensions::IMPLICIT_SOME)
+            .from_str(text)
+            .map_err(|e| e.to_string()),
+        #[allow(unreachable_patterns)]
+        _ => return Err(ModelError::FormatDisabled { format }),
+    };
+    parsed.map_err(|message| ModelError::Parse { format, message })
 }
 
 fn print<T: Serialize>(doc: &T, format: Format) -> Result<String, ModelError> {
-    match format {
-        Format::Json => json::print(doc),
-        Format::Ron => ron::print(doc),
-    }
-}
-
-#[cfg(feature = "json")]
-mod json {
-    use super::*;
-
-    pub fn parse<T: DeserializeOwned>(text: &str) -> Result<T, ModelError> {
-        serde_json::from_str(text).map_err(error)
-    }
-
-    pub fn print<T: Serialize>(doc: &T) -> Result<String, ModelError> {
-        serde_json::to_string_pretty(doc).map_err(error)
-    }
-
-    fn error(err: serde_json::Error) -> ModelError {
-        ModelError::Parse {
-            format: Format::Json,
-            message: err.to_string(),
+    let printed: Result<String, String> = match format {
+        #[cfg(feature = "json")]
+        Format::Json => serde_json::to_string_pretty(doc).map_err(|e| e.to_string()),
+        #[cfg(feature = "ron")]
+        Format::Ron => {
+            let config = ron::ser::PrettyConfig::new()
+                .new_line("\n")
+                .indentor("    ")
+                .struct_names(false)
+                .extensions(ron::extensions::Extensions::IMPLICIT_SOME);
+            ron::ser::to_string_pretty(doc, config).map_err(|e| e.to_string())
         }
-    }
-}
-
-#[cfg(feature = "ron")]
-mod ron {
-    use ::ron::extensions::Extensions;
-    use ::ron::ser::PrettyConfig;
-
-    use super::*;
-
-    pub fn parse<T: DeserializeOwned>(text: &str) -> Result<T, ModelError> {
-        // Accept files with or without the `#![enable(implicit_some)]` line.
-        ::ron::Options::default()
-            .with_default_extension(Extensions::IMPLICIT_SOME)
-            .from_str(text)
-            .map_err(error)
-    }
-
-    pub fn print<T: Serialize>(doc: &T) -> Result<String, ModelError> {
-        let config = PrettyConfig::new()
-            .new_line("\n")
-            .indentor("    ")
-            .struct_names(false)
-            .extensions(Extensions::IMPLICIT_SOME);
-        ::ron::ser::to_string_pretty(doc, config).map_err(error)
-    }
-
-    fn error(err: impl std::fmt::Display) -> ModelError {
-        ModelError::Parse {
-            format: Format::Ron,
-            message: err.to_string(),
-        }
-    }
-}
-
-#[cfg(not(feature = "json"))]
-mod json {
-    use super::*;
-
-    pub fn parse<T>(_text: &str) -> Result<T, ModelError> {
-        Err(ModelError::FormatDisabled {
-            format: Format::Json,
-        })
-    }
-
-    pub fn print<T>(_doc: &T) -> Result<String, ModelError> {
-        Err(ModelError::FormatDisabled {
-            format: Format::Json,
-        })
-    }
-}
-
-#[cfg(not(feature = "ron"))]
-mod ron {
-    use super::*;
-
-    pub fn parse<T>(_text: &str) -> Result<T, ModelError> {
-        Err(ModelError::FormatDisabled {
-            format: Format::Ron,
-        })
-    }
-
-    pub fn print<T>(_doc: &T) -> Result<String, ModelError> {
-        Err(ModelError::FormatDisabled {
-            format: Format::Ron,
-        })
-    }
+        #[allow(unreachable_patterns)]
+        _ => return Err(ModelError::FormatDisabled { format }),
+    };
+    printed.map_err(|message| ModelError::Parse { format, message })
 }
 
 #[cfg(test)]

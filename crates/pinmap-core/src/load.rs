@@ -3,8 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use pinmap_model::{
-    DocKind, Document, ModelError, PinAsg, PinDef, Target, classify, from_str, normalize_path,
-    resolve_ref,
+    DocKind, ModelError, PinAsg, PinDef, Target, normalize_path, read_from, resolve_ref,
 };
 
 use crate::Diagnostic;
@@ -95,7 +94,7 @@ impl Loader {
         }
 
         let disk_path = key.unwrap_or_else(|| real.to_path_buf());
-        let doc: PinAsg = match read_named(real, &disk_path) {
+        let doc: PinAsg = match read_from(real, &disk_path) {
             Ok(doc) => doc,
             Err(err) => {
                 self.diagnostics
@@ -150,7 +149,7 @@ impl Loader {
     fn load_device(&mut self, real: &Path) {
         let shown = normalize_path(real);
         let disk_path = fs::canonicalize(real).unwrap_or_else(|_| real.to_path_buf());
-        match read_named::<PinDef>(real, &disk_path) {
+        match read_from::<PinDef>(real, &disk_path) {
             Ok(doc) => {
                 self.device = Some(LoadedPinDef {
                     path: shown,
@@ -193,28 +192,6 @@ impl Loader {
             );
         }
     }
-}
-
-/// Reads a document whose kind and format come from `named`, the path as
-/// referenced (possibly a symlink), and whose contents come from `disk`.
-fn read_named<T: Document>(named: &Path, disk: &Path) -> Result<T, ModelError> {
-    let load = || {
-        let (kind, format) = classify(named)?;
-        if kind != T::KIND {
-            return Err(ModelError::KindMismatch {
-                expected: T::KIND,
-                found: kind,
-            });
-        }
-        from_str(&fs::read_to_string(disk)?, format)
-    };
-    load().map_err(|err| match err {
-        ModelError::Unclassifiable { .. } => err,
-        other => ModelError::At {
-            path: named.to_path_buf(),
-            source: Box::new(other),
-        },
-    })
 }
 
 /// A `device` or `imports` reference that could not be resolved, reported
