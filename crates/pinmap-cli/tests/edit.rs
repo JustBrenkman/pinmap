@@ -154,3 +154,63 @@ fn edit_errors_are_exit_2() {
     let r = run(dir.path(), &["note", "PA4"]);
     assert_eq!(r.code, 2, "note needs TEXT or --clear");
 }
+
+#[test]
+fn build_a_project_from_the_cli() {
+    let (dir, board) = empty_project();
+    let d = dir.path();
+    let steps: &[&[&str]] = &[
+        &[
+            "assign",
+            "periph",
+            "SPI1",
+            "SCK=PA5:IMU_SCK",
+            "MISO=PA6:IMU_MISO",
+            "MOSI=PA7:IMU_MOSI",
+            "--speed",
+            "very-high",
+        ],
+        &[
+            "assign",
+            "periph",
+            "USART2",
+            "TX=PA2:UART_TX_DEBUG",
+            "RX=PA3:UART_RX_DEBUG",
+        ],
+        &["assign", "periph", "USART2", "RX=PA3", "--bias", "pull-up"],
+        &[
+            "assign",
+            "pin",
+            "PA4",
+            "--mode",
+            "gpio-out",
+            "--initial",
+            "high",
+            "--net",
+            "IMU_CS",
+        ],
+        &[
+            "assign", "pin", "PB12", "--mode", "gpio-in", "--bias", "pull-up", "--net", "BTN_USER",
+        ],
+        &[
+            "assign", "pin", "PA13", "--mode", "reserved", "--net", "SWDIO",
+        ],
+        &["prop", "set", "SPI1", "spi-max-frequency", "<8000000>"],
+        &["prop", "set", "USART2", "current-speed", "<115200>"],
+        &["note", "SPI1", "IMU bus; CS is a GPIO on PA4"],
+        &["note", "PA4", "SPI1 CS, active low"],
+        &["note", "PA13", "SWD"],
+    ];
+    for step in steps {
+        let r = run(d, step);
+        assert_eq!(r.code, 0, "{step:?}: {}{}", r.stdout, r.stderr);
+    }
+    // A rejected edit leaves the file alone.
+    let before = fs::read_to_string(&board).unwrap();
+    assert_eq!(run(d, &["assign", "periph", "SPI1", "MOSI=PA6"]).code, 1);
+    assert_eq!(fs::read_to_string(&board).unwrap(), before);
+
+    assert_eq!(run(d, &["check"]).stdout, "✔ no problems\n");
+    assert_eq!(run(d, &["fmt", "--check"]).code, 0);
+    insta::assert_snapshot!(fs::read_to_string(&board).unwrap());
+}

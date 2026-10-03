@@ -376,11 +376,13 @@ pinmap pin show PA5
 pinmap periph list | show SPI1
 
 # edit (all support --dry-run)
-pinmap assign SPI1 SCK=PA5:IMU_SCK MISO=PA6:IMU_MISO     # SIGNAL=PIN[:NET]
+pinmap assign periph SPI1 SCK=PA5:IMU_SCK MISO=PA6:IMU_MISO   # SIGNAL=PIN[:NET]
 pinmap assign pin PA4 --mode gpio-out --initial high --net IMU_CS
-pinmap assign clear PA5 | SPI1
+pinmap unassign PA5 | SPI1 | SPI1.SCK
 pinmap prop set SPI1 spi-max-frequency '<8000000>'
+pinmap prop unset SPI1 spi-max-frequency
 pinmap note PA4 "SPI1 CS, active low"
+pinmap note PA4 --clear
 
 # validate and output
 pinmap check [--deny-warnings]
@@ -507,7 +509,7 @@ KiCad spec (wiring list as JSON), `.kicad_sym` generation, C and Rust header emi
 
 | Phase | Scope | Exit criterion |
 |---|---|---|
-| **1. Core** | Model, `Format`, `classify`, loader with imports and stem resolution, resolver, `check`, `pin`/`periph` inspection, edit pipeline, canonical writer, root discovery | A hand-written project is edited entirely through the CLI, with clean diffs and rollback on error |
+| **1. Core** | Model, `Format`, `classify`, loader with imports and stem resolution, resolver, `check`, `pin`/`periph` inspection, edit pipeline, canonical writer, root discovery | A hand-written project is edited entirely through the CLI, with clean diffs and rollback on error (met) |
 | **2. STM32 slice** | Optional `pinmap.toml`, `init`, `refresh`, STM32 importer, `pinmap-dts` AST, Zephyr emitter, Markdown emitter, conformance harness | A Nucleo project's overlay passes `dtc` and builds |
 | **3. Verify** | KiCad netlist reader, `kicad_lib` importer, `verify` | A real schematic verifies clean; a deliberately broken one gives the expected findings |
 | **4. Second vendor** | nRF (any-pin routing), then freeze `pinmap/v1` | The schema needed no STM32-specific changes |

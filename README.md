@@ -7,7 +7,7 @@ One source of truth for microcontroller pin assignments.
 
 pinmap stores what a chip's pins *can* do and what your board *chose* to do with them as plain-text documents, then generates devicetree, documentation, and diagrams from them. It also checks that a KiCad schematic's net labels match the assignments.
 
-> **Status: early development.** The document model, the project loader and checks, and the read-only CLI work today. Editing commands, importers, emitters, and schematic verification are designed but not built yet. See the [roadmap](#roadmap).
+> **Status: early development.** The document model, the project loader and checks, and the CLI for inspecting and editing assignments work today. Importers, emitters, and schematic verification are designed but not built yet. See the [roadmap](#roadmap).
 
 ## Why
 
@@ -70,11 +70,11 @@ vendor data ──► IMPORTERS ──► *.pindef.* ─┐
 | Crate | Role | State |
 |---|---|---|
 | `pinmap-model` | Document types, format detection, canonical read/write, reference resolution | Implemented |
-| `pinmap-core` | Loader, resolver, `check`; later `verify`, the edit pipeline, and the `Importer`/`Emitter` traits | Partial |
+| `pinmap-core` | Loader, resolver, `check`, edit pipeline; later `verify` and the `Importer`/`Emitter` traits | Partial |
 | `pinmap-dts` | Devicetree AST and printer shared by the Zephyr and Linux emitters | Stub |
 | `pinmap-import` | Importers: STM32, KiCad symbol libraries, SVD | Stub |
 | `pinmap-emit` | Emitters: Zephyr, Linux, Markdown, Mermaid, JSON | Stub |
-| `pinmap-cli` | The `pinmap` binary | Read-only commands |
+| `pinmap-cli` | The `pinmap` binary | Inspection and editing |
 
 The full design, including the data model, validation rules, and schematic verification algorithm, is in [docs/design.md](docs/design.md).
 
@@ -107,13 +107,26 @@ error[PM0102] SPI1.MOSI: PA6 has no function SPI1_MOSI (functions: SPI1_MISO, TI
 
 Every command takes `--json` for scripts and AI tools. Exit codes: 0 when the command ran clean, 1 when it found problems, 2 when it could not run.
 
-Still to come: `import`, `assign`, `verify`, and `emit`.
+### Editing
+
+```sh
+pinmap assign periph SPI1 SCK=PA5:IMU_SCK MISO=PA6:IMU_MISO --speed very-high
+pinmap assign pin PA4 --mode gpio-out --initial high --net IMU_CS
+pinmap prop set SPI1 spi-max-frequency '<8000000>'
+pinmap note PA4 "SPI1 CS, active low"
+pinmap unassign PA4                              # or a peripheral, or SPI1.SCK
+pinmap assign periph SPI1 MOSI=PA6 --dry-run     # preview the diff and any new errors
+```
+
+Every edit is checked before it is written. An edit that would add an error is rejected: nothing is written and the command exits 1 (`--allow-errors` writes anyway). Errors that were already there don't block unrelated edits. Changed files are rewritten in canonical form, atomically, in whichever file defines the entry; new entries go to the root file or to `--file`. pinmap refuses to rewrite a RON file that contains comments, since rewriting would drop them, unless you pass `--allow-comment-loss`. For the same reason, `fmt --check` skips commented RON files instead of failing them.
+
+Still to come: `import`, `verify`, and `emit`.
 
 ## Roadmap
 
 | Phase | Scope | State |
 |---|---|---|
-| 1. Core | Model, loader with imports, resolver, `check`, inspection, edit pipeline | Read-only CLI done; editing next |
+| 1. Core | Model, loader with imports, resolver, `check`, inspection, edit pipeline | Done |
 | 2. STM32 slice | STM32 importer, devicetree AST, Zephyr and Markdown emitters | Planned |
 | 3. Verify | KiCad netlist reader, KiCad library importer, `verify` | Planned |
 | 4. Second vendor | nRF, then freeze the `pinmap/v1` schema | Planned |
