@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use pinmap_core::Diagnostic;
-use pinmap_model::Mux;
 use serde::Serialize;
 
 pub struct Ctx {
@@ -80,21 +79,6 @@ pub fn table(out: &mut String, header: &[&str], rows: &[Vec<String>]) {
 
 pub fn dash(value: Option<&str>) -> String {
     value.unwrap_or("-").to_owned()
-}
-
-/// `AF5`, `F3`, `analog`, `vendor(mux=1, pad=2)`.
-pub fn mux_text(mux: &Mux) -> String {
-    match mux {
-        Mux::Af(n) => format!("AF{n}"),
-        Mux::FuncSel(n) => format!("F{n}"),
-        Mux::Any => "any".into(),
-        Mux::Analog => "analog".into(),
-        Mux::Fixed => "fixed".into(),
-        Mux::Vendor(values) => {
-            let values: Vec<String> = values.iter().map(|(k, v)| format!("{k}={v}")).collect();
-            format!("vendor({})", values.join(", "))
-        }
-    }
 }
 
 /// `error[PM0102] message`, then the file and logical path, then the hint,

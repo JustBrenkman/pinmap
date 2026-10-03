@@ -6,7 +6,7 @@ use pinmap_core::{Origin, Resolved, suggest};
 use pinmap_model::{Bias, Drive, Mux, PinId, Speed};
 use serde::Serialize;
 
-use crate::output::{Ctx, Exit, Render, config, dash, mux_text, table};
+use crate::output::{Ctx, Exit, Render, config, dash, table};
 use crate::project;
 
 #[derive(Serialize)]
@@ -111,7 +111,7 @@ impl Render for PeriphShow {
                     s.signal.clone(),
                     dash(s.pin.as_ref().map(PinId::as_str)),
                     dash(s.net.as_deref()),
-                    s.mux.as_ref().map_or("-".into(), mux_text),
+                    s.mux.as_ref().map_or("-".into(), Mux::to_string),
                     if candidates.is_empty() {
                         "-".into()
                     } else {

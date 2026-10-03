@@ -1,3 +1,5 @@
+use std::fmt;
+
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
@@ -86,4 +88,48 @@ pub enum Mux {
     /// Named register values for vendors that fit none of the above (i.MX
     /// mux and pad settings).
     Vendor(IndexMap<String, u32>),
+}
+
+/// A short label: `AF5`, `F3`, `any`, `analog`, `fixed`, or `vendor(k=v, ...)`.
+impl fmt::Display for Mux {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Af(n) => write!(f, "AF{n}"),
+            Self::FuncSel(n) => write!(f, "F{n}"),
+            Self::Any => f.write_str("any"),
+            Self::Analog => f.write_str("analog"),
+            Self::Fixed => f.write_str("fixed"),
+            Self::Vendor(values) => {
+                f.write_str("vendor(")?;
+                for (i, (key, value)) in values.iter().enumerate() {
+                    if i > 0 {
+                        f.write_str(", ")?;
+                    }
+                    write!(f, "{key}={value}")?;
+                }
+                f.write_str(")")
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mux_displays_as_a_short_label() {
+        let vendor: IndexMap<String, u32> = [("mux".to_owned(), 1), ("pad".to_owned(), 2)].into();
+        let cases = [
+            (Mux::Af(5), "AF5"),
+            (Mux::FuncSel(3), "F3"),
+            (Mux::Any, "any"),
+            (Mux::Analog, "analog"),
+            (Mux::Fixed, "fixed"),
+            (Mux::Vendor(vendor), "vendor(mux=1, pad=2)"),
+        ];
+        for (mux, expected) in cases {
+            assert_eq!(mux.to_string(), expected);
+        }
+    }
 }

@@ -7,7 +7,7 @@ use pinmap_model::{Bias, Drive, Level, Mux, Pin, PinId, Port, Speed};
 use serde::Serialize;
 
 use crate::args::PinListArgs;
-use crate::output::{Ctx, Exit, Render, config, dash, mux_text, table};
+use crate::output::{Ctx, Exit, Render, config, dash, table};
 use crate::project;
 
 #[derive(Serialize)]
@@ -48,7 +48,7 @@ impl Render for PinList {
                     dash(row.net.as_deref()),
                 ];
                 if let Some(mux) = &row.mux {
-                    cells.push(mux_text(mux));
+                    cells.push(mux.to_string());
                 }
                 cells
             })
@@ -191,7 +191,7 @@ impl Render for PinShow {
                 let assigned = if f.assigned { "yes" } else { "" };
                 vec![
                     format!("{}.{}", f.periph, f.name),
-                    mux_text(&f.mux),
+                    f.mux.to_string(),
                     assigned.into(),
                 ]
             })
