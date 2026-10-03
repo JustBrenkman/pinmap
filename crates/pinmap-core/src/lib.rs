@@ -1,4 +1,8 @@
-//! Loader, resolver, `check`, `verify`, the edit pipeline, and the `Importer` and
-//! `Emitter` traits.
+//! Loading, resolving, and checking pinmap projects.
 //!
-//! Not implemented yet. See `docs/design.md` sections 4 to 7.
+//! [`open`] is the entry point: it loads a root pinasg with its imports and
+//! pindef, merges them into a [`Resolved`] view, and runs every check.
+
+mod diagnostic;
+
+pub use diagnostic::{Counts, Diagnostic, Severity, sort};

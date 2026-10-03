@@ -11,4 +11,10 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
+indexmap.workspace = true
 pinmap-model.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

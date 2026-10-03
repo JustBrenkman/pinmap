@@ -564,7 +564,11 @@ dependencies = [
 name = "pinmap-core"
 version = "0.1.0"
 dependencies = [
+ "indexmap",
  "pinmap-model",
+ "serde",
+ "tempfile",
+ "thiserror",
 ]
 
 [[package]]
