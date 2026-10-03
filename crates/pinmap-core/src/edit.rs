@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 
 use indexmap::IndexMap;
 use pinmap_model::{
-    Bias, Drive, Level, Mode, ModelError, PeriphAsg, PinAsg, PinId, SignalAsg, Speed, classify,
-    has_comments, to_string, write_atomic,
+    Bias, Drive, Level, Mode, ModelError, PeriphAsg, PinAsg, PinAsgEntry, PinId, SignalAsg, Speed,
+    classify, has_comments, to_string, write_atomic,
 };
 
 use crate::{Diagnostic, Project, Severity, Usage, load, resolve};
@@ -151,6 +151,53 @@ impl Session {
         })
     }
 
+    /// Sends new peripherals and pin entries to `file`, which must be one of
+    /// the project's pinasg files.
+    pub fn set_new_entry_file(&mut self, file: &Path) -> Result<(), EditError> {
+        let wanted =
+            fs::canonicalize(file).map_err(|_| EditError::NotInProject(file.to_path_buf()))?;
+        self.new_entries = self
+            .project
+            .files
+            .iter()
+            .position(|f| f.disk_path == wanted)
+            .ok_or_else(|| EditError::NotInProject(file.to_path_buf()))?;
+        Ok(())
+    }
+
+    /// Creates or updates the entry for `pin`. A new entry needs a mode.
+    pub fn assign_pin(&mut self, pin: &PinId, change: &PinChange) -> Result<(), EditError> {
+        let i = self.pin_file(pin.as_str()).unwrap_or(self.new_entries);
+        let exists = self.project.files[i].doc.pins.contains_key(pin);
+        if !exists && change.mode.is_none() {
+            return Err(EditError::ModeRequired(pin.clone()));
+        }
+        let entry = self
+            .doc_mut(i)
+            .pins
+            .entry(pin.clone())
+            .or_insert_with(|| PinAsgEntry {
+                mode: change.mode.unwrap_or(Mode::GpioIn),
+                initial: None,
+                bias: None,
+                net: None,
+                note: None,
+            });
+        if let Some(mode) = change.mode {
+            entry.mode = mode;
+        }
+        if change.initial.is_some() {
+            entry.initial = change.initial;
+        }
+        if change.bias.is_some() {
+            entry.bias = change.bias;
+        }
+        if let Some(net) = &change.net {
+            entry.net = Some(net.clone());
+        }
+        Ok(())
+    }
+
     /// Adds or updates signals of `periph`, creating the peripheral if needed.
     /// An existing signal keeps its net unless a new one is given.
     pub fn assign_signals(
@@ -267,5 +314,12 @@ impl Session {
             .files
             .iter()
             .position(|f| f.doc.peripherals.contains_key(name))
+    }
+
+    fn pin_file(&self, pin: &str) -> Option<usize> {
+        self.project
+            .files
+            .iter()
+            .position(|f| f.doc.pins.contains_key(pin))
     }
 }

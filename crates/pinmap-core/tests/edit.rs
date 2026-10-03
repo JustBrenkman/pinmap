@@ -1,8 +1,10 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use pinmap_core::{EditError, EditOptions, EditOutcome, Session, SignalConfig, SignalSpec};
-use pinmap_model::Speed;
+use pinmap_core::{
+    EditError, EditOptions, EditOutcome, PinChange, Session, SignalConfig, SignalSpec,
+};
+use pinmap_model::{Level, Mode, Speed};
 
 fn fixtures() -> PathBuf {
     let crates = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
@@ -234,4 +236,74 @@ fn open_needs_a_pindef() {
     )
     .unwrap();
     assert!(matches!(Session::open(&root), Err(EditError::Load(_))));
+}
+
+#[test]
+fn new_pin_needs_a_mode() {
+    let (_dir, root) = project("");
+    let mut session = Session::open(&root).unwrap();
+    let err = session
+        .assign_pin(&"PA4".into(), &PinChange::default())
+        .unwrap_err();
+    assert!(matches!(err, EditError::ModeRequired(_)));
+}
+
+#[test]
+fn assign_pin_creates_then_updates_only_given_fields() {
+    let (_dir, root) = project("");
+    let mut session = Session::open(&root).unwrap();
+    let change = PinChange {
+        mode: Some(Mode::GpioOut),
+        net: Some("LED".into()),
+        ..Default::default()
+    };
+    session.assign_pin(&"PA4".into(), &change).unwrap();
+    session.commit(&EditOptions::default()).unwrap();
+
+    let mut session = Session::open(&root).unwrap();
+    let change = PinChange {
+        initial: Some(Level::High),
+        ..Default::default()
+    };
+    session.assign_pin(&"PA4".into(), &change).unwrap();
+    session.commit(&EditOptions::default()).unwrap();
+    let doc: pinmap_model::PinAsg = pinmap_model::read(&root).unwrap();
+    let entry = &doc.pins["PA4"];
+    assert_eq!(
+        (entry.mode, entry.initial, entry.net.as_deref()),
+        (Mode::GpioOut, Some(Level::High), Some("LED"))
+    );
+}
+
+#[test]
+fn new_entries_go_to_the_chosen_file() {
+    let (dir, root) = revb();
+    let mut session = Session::open(&root).unwrap();
+    session
+        .set_new_entry_file(&dir.path().join("board/usb.pinasg.json"))
+        .unwrap();
+    session
+        .assign_signals(
+            "TIM2",
+            &[spec("CH3", "PA2", None)],
+            &SignalConfig::default(),
+        )
+        .unwrap();
+    let options = EditOptions {
+        dry_run: true,
+        ..Default::default()
+    };
+    let outcome = session.commit(&options).unwrap();
+    assert!(outcome.files[0].path.ends_with("board/usb.pinasg.json"));
+}
+
+#[test]
+fn chosen_file_must_be_in_the_project() {
+    let (dir, root) = revb();
+    let mut session = Session::open(&root).unwrap();
+    let outside = dir.path().join("devices/stm32f407vg.pindef.json");
+    assert!(matches!(
+        session.set_new_entry_file(&outside),
+        Err(EditError::NotInProject(_))
+    ));
 }
