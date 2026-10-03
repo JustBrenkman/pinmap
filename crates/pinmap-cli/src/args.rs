@@ -25,6 +25,9 @@ pub enum Command {
     /// Inspect pins.
     #[command(subcommand)]
     Pin(PinCommand),
+    /// Inspect peripherals.
+    #[command(subcommand)]
+    Periph(PeriphCommand),
 }
 
 #[derive(Args)]
@@ -59,4 +62,15 @@ pub struct PinListArgs {
     /// Only pins with this net label.
     #[arg(long)]
     pub net: Option<String>,
+}
+
+#[derive(Subcommand)]
+pub enum PeriphCommand {
+    /// List the device's peripherals and which are assigned.
+    List,
+    /// Show a peripheral's signals, candidate pins, and assignment.
+    Show {
+        /// Peripheral name, for example SPI1.
+        periph: String,
+    },
 }

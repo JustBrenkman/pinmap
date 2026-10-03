@@ -1,0 +1,15 @@
+---
+source: crates/pinmap-cli/tests/periph.rs
+expression: run.stdout
+---
+SPI1  assigned in board/revb.pinasg.json  peripherals.SPI1
+note  IMU bus; CS is a GPIO on PA4
+
+SIGNAL  PIN  NET       MUX  CANDIDATES
+SCK     PA5  IMU_SCK   AF5  PA5
+MISO    PA6  IMU_MISO  AF5  PA6
+MOSI    PA7  IMU_MOSI  AF5  PA7
+NSS     -    -         -    PA4
+
+props
+  spi-max-frequency = <8000000>

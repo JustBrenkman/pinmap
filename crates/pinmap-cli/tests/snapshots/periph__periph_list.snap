@@ -1,0 +1,16 @@
+---
+source: crates/pinmap-cli/tests/periph.rs
+expression: run.stdout
+---
+PERIPH  ASSIGNED  SIGNALS
+USART2  yes       2
+TIM2              -
+ADC1              -
+SPI1    yes       3
+DAC               -
+TIM3              -
+OTG_FS  yes       2
+USART1            -
+SYS               -
+SPI2              -
+I2C2              -

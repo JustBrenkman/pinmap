@@ -13,6 +13,7 @@ categories.workspace = true
 [dependencies]
 anyhow.workspace = true
 clap.workspace = true
+indexmap.workspace = true
 pinmap-core.workspace = true
 pinmap-emit.workspace = true
 pinmap-import.workspace = true
