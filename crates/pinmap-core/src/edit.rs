@@ -244,6 +244,60 @@ impl Session {
         Ok(())
     }
 
+    /// Removes `PERIPH.SIGNAL`, a whole peripheral, or everything on a pin.
+    /// A peripheral left with no signals, props, or note is removed too.
+    pub fn unassign(&mut self, name: &str) -> Result<Removed, EditError> {
+        if let Some((periph, signal)) = name.split_once('.') {
+            let i = self
+                .periph_file(periph)
+                .filter(|&i| {
+                    self.project.files[i].doc.peripherals[periph]
+                        .signals
+                        .contains_key(signal)
+                })
+                .ok_or_else(|| self.not_assigned(name))?;
+            let doc = self.doc_mut(i);
+            if let Some(p) = doc.peripherals.get_mut(periph) {
+                p.signals.shift_remove(signal);
+            }
+            prune(doc, periph);
+            return Ok(Removed::Signal {
+                periph: periph.into(),
+                signal: signal.into(),
+            });
+        }
+        let periph = self.periph_file(name);
+        let uses = self.pin_uses(name);
+        match (periph, uses.is_empty()) {
+            (Some(_), false) => Err(EditError::Ambiguous(name.into())),
+            (Some(i), true) => {
+                self.doc_mut(i).peripherals.shift_remove(name);
+                Ok(Removed::Peripheral(name.into()))
+            }
+            (None, false) => {
+                for (i, usage) in &uses {
+                    let doc = self.doc_mut(*i);
+                    match usage {
+                        Usage::Signal { periph, signal } => {
+                            if let Some(p) = doc.peripherals.get_mut(periph) {
+                                p.signals.shift_remove(signal);
+                            }
+                            prune(doc, periph);
+                        }
+                        Usage::Pin { .. } => {
+                            doc.pins.shift_remove(name);
+                        }
+                    }
+                }
+                Ok(Removed::Pin {
+                    pin: name.into(),
+                    uses: uses.into_iter().map(|(_, usage)| usage).collect(),
+                })
+            }
+            (None, true) => Err(self.not_assigned(name)),
+        }
+    }
+
     /// Checks the edited project and, unless rejected or a dry run, writes
     /// every changed file.
     pub fn commit(self, options: &EditOptions) -> Result<EditOutcome, EditError> {
@@ -316,10 +370,63 @@ impl Session {
             .position(|f| f.doc.peripherals.contains_key(name))
     }
 
+    /// Every use of `pin` across files, with the index of the file holding it.
+    fn pin_uses(&self, pin: &str) -> Vec<(usize, Usage)> {
+        let mut uses = Vec::new();
+        for (i, file) in self.project.files.iter().enumerate() {
+            for (periph, p) in &file.doc.peripherals {
+                for (signal, s) in &p.signals {
+                    if s.pin.as_str() == pin {
+                        let usage = Usage::Signal {
+                            periph: periph.clone(),
+                            signal: signal.clone(),
+                        };
+                        uses.push((i, usage));
+                    }
+                }
+            }
+            if let Some(entry) = file.doc.pins.get(pin) {
+                uses.push((i, Usage::Pin { mode: entry.mode }));
+            }
+        }
+        uses
+    }
+
+    /// `NotAssigned` for `name`, suggesting the nearest assigned name.
+    fn not_assigned(&self, name: &str) -> EditError {
+        let mut names: Vec<String> = Vec::new();
+        for file in &self.project.files {
+            for (periph, p) in &file.doc.peripherals {
+                names.push(periph.clone());
+                for (signal, s) in &p.signals {
+                    names.push(format!("{periph}.{signal}"));
+                    names.push(s.pin.to_string());
+                }
+            }
+            names.extend(file.doc.pins.keys().map(PinId::to_string));
+        }
+        let suggestion = crate::suggest(name, names.iter().map(String::as_str)).map(str::to_owned);
+        EditError::NotAssigned {
+            name: name.into(),
+            suggestion,
+        }
+    }
+
     fn pin_file(&self, pin: &str) -> Option<usize> {
         self.project
             .files
             .iter()
             .position(|f| f.doc.pins.contains_key(pin))
+    }
+}
+
+/// Drops a peripheral that has nothing left: no signals, props, or note.
+fn prune(doc: &mut PinAsg, periph: &str) {
+    let empty = doc
+        .peripherals
+        .get(periph)
+        .is_some_and(|p| p.signals.is_empty() && p.props.is_empty() && p.note.is_none());
+    if empty {
+        doc.peripherals.shift_remove(periph);
     }
 }

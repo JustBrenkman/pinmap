@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use pinmap_core::{
-    EditError, EditOptions, EditOutcome, PinChange, Session, SignalConfig, SignalSpec,
+    EditError, EditOptions, EditOutcome, PinChange, Removed, Session, SignalConfig, SignalSpec,
 };
 use pinmap_model::{Level, Mode, Speed};
 
@@ -305,5 +305,74 @@ fn chosen_file_must_be_in_the_project() {
     assert!(matches!(
         session.set_new_entry_file(&outside),
         Err(EditError::NotInProject(_))
+    ));
+}
+
+fn unassign(root: &Path, name: &str) -> Result<Removed, EditError> {
+    let mut session = Session::open(root).unwrap();
+    let removed = session.unassign(name)?;
+    session.commit(&EditOptions::default()).unwrap();
+    Ok(removed)
+}
+
+fn doc(path: &Path) -> pinmap_model::PinAsg {
+    pinmap_model::read(path).unwrap()
+}
+
+#[test]
+fn unassign_signal_pin_and_peripheral() {
+    let (dir, root) = revb();
+    unassign(&root, "SPI1.SCK").unwrap();
+    assert!(!doc(&root).peripherals["SPI1"].signals.contains_key("SCK"));
+
+    assert!(matches!(
+        unassign(&root, "PA4").unwrap(),
+        Removed::Pin { .. }
+    ));
+    assert!(!doc(&root).pins.contains_key("PA4"));
+
+    unassign(&root, "PA11").unwrap();
+    let usb = doc(&dir.path().join("board/usb.pinasg.json"));
+    assert!(!usb.peripherals["OTG_FS"].signals.contains_key("DM"));
+
+    assert_eq!(
+        unassign(&root, "USART2").unwrap(),
+        Removed::Peripheral("USART2".into())
+    );
+    assert!(!doc(&root).peripherals.contains_key("USART2"));
+}
+
+#[test]
+fn empty_peripheral_is_removed() {
+    let (_dir, root) = project(r#""peripherals": {"SPI1": {"signals": {"SCK": {"pin": "PA5"}}}}"#);
+    unassign(&root, "SPI1.SCK").unwrap();
+    assert!(doc(&root).peripherals.is_empty());
+}
+
+#[test]
+fn peripheral_with_props_survives_losing_signals() {
+    let (_dir, root) = revb();
+    for signal in ["SCK", "MISO", "MOSI"] {
+        unassign(&root, &format!("SPI1.{signal}")).unwrap();
+    }
+    let spi = &doc(&root).peripherals["SPI1"];
+    assert!(spi.signals.is_empty() && !spi.props.is_empty());
+}
+
+#[test]
+fn unassign_unknown_suggests() {
+    let (_dir, root) = revb();
+    let err = unassign(&root, "PA44").unwrap_err();
+    assert_eq!(err.to_string(), "PA44 is not assigned; did you mean PA4?");
+}
+
+#[test]
+fn unassign_ambiguous_name() {
+    let (_dir, root) = project(
+        r#""peripherals": {"PA5": {"signals": {"X": {"pin": "PB12"}}}}, "pins": {"PA5": {"mode": "gpio_out"}}"#,
+    );
+    assert!(matches!(
+        unassign(&root, "PA5"),
+        Err(EditError::Ambiguous(_))
     ));
 }
