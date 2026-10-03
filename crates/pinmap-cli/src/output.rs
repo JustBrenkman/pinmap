@@ -1,8 +1,8 @@
-use std::fmt::Write as _;
+use std::fmt::{Display, Write as _};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use pinmap_core::Diagnostic;
+use pinmap_core::{Diagnostic, Severity};
 use serde::Serialize;
 
 pub struct Ctx {
@@ -79,6 +79,25 @@ pub fn table(out: &mut String, header: &[&str], rows: &[Vec<String>]) {
 
 pub fn dash(value: Option<&str>) -> String {
     value.unwrap_or("-").to_owned()
+}
+
+/// `items` joined with `separator`, or `-` when there are none.
+pub fn joined_or_dash(items: impl IntoIterator<Item = impl Display>, separator: &str) -> String {
+    let items: Vec<String> = items.into_iter().map(|item| item.to_string()).collect();
+    if items.is_empty() {
+        "-".to_owned()
+    } else {
+        items.join(separator)
+    }
+}
+
+/// The errors among `diagnostics`, rendered as `check` prints them.
+pub fn render_errors(diagnostics: &[Diagnostic]) -> String {
+    let mut text = String::new();
+    for d in diagnostics.iter().filter(|d| d.severity == Severity::Error) {
+        render_diagnostic(d, &mut text);
+    }
+    text
 }
 
 /// `error[PM0102] message`, then the file and logical path, then the hint,

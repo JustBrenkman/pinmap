@@ -4,6 +4,24 @@ use clap::builder::PossibleValuesParser;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use pinmap_model::{Bias, DocKind, Drive, Format, Level, Mode, Speed};
 
+/// A clap value enum mirroring a model enum, with kebab-case names.
+macro_rules! value_enum {
+    ($arg:ident => $model:ident { $($variant:ident),+ $(,)? }) => {
+        #[derive(Clone, Copy, ValueEnum)]
+        pub enum $arg {
+            $($variant),+
+        }
+
+        impl From<$arg> for $model {
+            fn from(value: $arg) -> Self {
+                match value {
+                    $($arg::$variant => $model::$variant),+
+                }
+            }
+        }
+    };
+}
+
 /// One source of truth for microcontroller pin assignments.
 #[derive(Parser)]
 #[command(name = "pinmap", version, about)]
@@ -132,35 +150,8 @@ pub struct ConvertArgs {
     pub to: Option<FormatArg>,
 }
 
-#[derive(Clone, Copy, ValueEnum)]
-pub enum KindArg {
-    Pindef,
-    Pinasg,
-}
-
-impl From<KindArg> for DocKind {
-    fn from(kind: KindArg) -> Self {
-        match kind {
-            KindArg::Pindef => DocKind::Pindef,
-            KindArg::Pinasg => DocKind::Pinasg,
-        }
-    }
-}
-
-#[derive(Clone, Copy, ValueEnum)]
-pub enum FormatArg {
-    Json,
-    Ron,
-}
-
-impl From<FormatArg> for Format {
-    fn from(format: FormatArg) -> Self {
-        match format {
-            FormatArg::Json => Format::Json,
-            FormatArg::Ron => Format::Ron,
-        }
-    }
-}
+value_enum!(KindArg => DocKind { Pindef, Pinasg });
+value_enum!(FormatArg => Format { Json, Ron });
 
 #[derive(Args)]
 pub struct FmtArgs {
@@ -170,24 +161,6 @@ pub struct FmtArgs {
     pub check: bool,
     /// Files to format. Defaults to the project's files and its pindef.
     pub paths: Vec<PathBuf>,
-}
-
-/// A clap value enum mirroring a model enum, with kebab-case names.
-macro_rules! value_enum {
-    ($arg:ident => $model:ident { $($variant:ident),+ $(,)? }) => {
-        #[derive(Clone, Copy, ValueEnum)]
-        pub enum $arg {
-            $($variant),+
-        }
-
-        impl From<$arg> for $model {
-            fn from(value: $arg) -> Self {
-                match value {
-                    $($arg::$variant => $model::$variant),+
-                }
-            }
-        }
-    };
 }
 
 value_enum!(BiasArg => Bias { Floating, PullUp, PullDown });

@@ -7,7 +7,7 @@ use pinmap_model::{Mux, Pin, PinId, Port};
 use serde::Serialize;
 
 use crate::args::PinListArgs;
-use crate::output::{Ctx, Exit, Render, dash, table};
+use crate::output::{Ctx, Exit, Render, dash, joined_or_dash, table};
 use crate::project;
 
 #[derive(Serialize)]
@@ -44,7 +44,7 @@ impl Render for PinList {
                 let mut cells = vec![
                     row.pin.to_string(),
                     dash(row.pad.as_deref()),
-                    uses_text(&row.uses),
+                    joined_or_dash(&row.uses, ", "),
                     dash(row.net.as_deref()),
                 ];
                 if let Some(mux) = &row.mux {
@@ -55,14 +55,6 @@ impl Render for PinList {
             .collect();
         table(out, &header, &rows);
     }
-}
-
-fn uses_text(uses: &[Usage]) -> String {
-    if uses.is_empty() {
-        return "-".into();
-    }
-    let names: Vec<String> = uses.iter().map(Usage::to_string).collect();
-    names.join(", ")
 }
 
 /// Splits `SPI1.SCK` into `("SPI1", "SCK")`.

@@ -9,7 +9,7 @@ use serde::Serialize;
 use similar::TextDiff;
 
 use crate::args::{AssignPeriphArgs, AssignPinArgs, EditFlags, NoteArgs, PropCommand};
-use crate::output::{Ctx, Exit, Render, render_diagnostic};
+use crate::output::{Ctx, Exit, Render, render_diagnostic, render_errors};
 use crate::project;
 
 #[derive(Serialize)]
@@ -122,11 +122,7 @@ pub fn run_edit(
 
 fn print_load_errors(err: &EditError) {
     if let EditError::Load(diagnostics) = err {
-        let mut text = String::new();
-        for d in diagnostics.iter().filter(|d| d.severity == Severity::Error) {
-            render_diagnostic(d, &mut text);
-        }
-        eprint!("{text}");
+        eprint!("{}", render_errors(diagnostics));
     }
 }
 

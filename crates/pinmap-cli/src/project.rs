@@ -1,9 +1,9 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, bail};
-use pinmap_core::{Counts, Diagnostic, Resolved, Severity, discover_root, open};
+use pinmap_core::{Counts, Diagnostic, Resolved, discover_root, open};
 
-use crate::output::{Ctx, render_diagnostic};
+use crate::output::{Ctx, render_errors};
 
 /// The root pinasg: `--project`, or the one found under the current directory.
 pub fn root(ctx: &Ctx) -> anyhow::Result<PathBuf> {
@@ -27,11 +27,7 @@ pub fn load(ctx: &Ctx) -> anyhow::Result<(Option<Resolved>, Vec<Diagnostic>)> {
 pub fn load_resolved(ctx: &Ctx) -> anyhow::Result<Resolved> {
     let (resolved, diagnostics) = load(ctx)?;
     let Some(resolved) = resolved else {
-        let mut text = String::new();
-        for d in diagnostics.iter().filter(|d| d.severity == Severity::Error) {
-            render_diagnostic(d, &mut text);
-        }
-        eprint!("{text}");
+        eprint!("{}", render_errors(&diagnostics));
         bail!("cannot load the project's pindef");
     };
     let errors = Counts::of(&diagnostics).errors;

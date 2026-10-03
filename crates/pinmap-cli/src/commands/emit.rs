@@ -3,12 +3,12 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, bail};
-use pinmap_core::{Counts, Diagnostic, EmitOptions, OutputFile, Severity, check_options};
+use pinmap_core::{Counts, EmitOptions, OutputFile, check_options};
 use pinmap_model::write_atomic;
 use serde::Serialize;
 
 use crate::args::EmitArgs;
-use crate::output::{Ctx, Exit, Render, render_diagnostic};
+use crate::output::{Ctx, Exit, Render, render_diagnostic, render_errors};
 use crate::project;
 
 #[derive(Serialize)]
@@ -34,17 +34,13 @@ pub fn run(ctx: &Ctx, args: &EmitArgs) -> anyhow::Result<Exit> {
     check_options(emitter.as_ref(), &options)?;
 
     let (resolved, diagnostics) = project::load(ctx)?;
-    let errors: Vec<&Diagnostic> = diagnostics
-        .iter()
-        .filter(|d| d.severity == Severity::Error)
-        .collect();
     let Some(resolved) = resolved else {
-        eprint!("{}", rendered(&errors));
+        eprint!("{}", render_errors(&diagnostics));
         bail!("cannot load the project's pindef");
     };
-    if !errors.is_empty() && !args.allow_errors {
-        eprint!("{}", rendered(&errors));
-        let count = Counts::of(&diagnostics).errors;
+    let count = Counts::of(&diagnostics).errors;
+    if count > 0 && !args.allow_errors {
+        eprint!("{}", render_errors(&diagnostics));
         eprintln!(
             "✘ not emitting: the project has {count} error(s) (use --allow-errors to emit anyway)"
         );
@@ -77,14 +73,6 @@ pub fn run(ctx: &Ctx, args: &EmitArgs) -> anyhow::Result<Exit> {
         }
     }
     Ok(Exit::Ok)
-}
-
-fn rendered(diagnostics: &[&Diagnostic]) -> String {
-    let mut text = String::new();
-    for d in diagnostics {
-        render_diagnostic(d, &mut text);
-    }
-    text
 }
 
 /// The emitter's only file; several files need `--out-dir`.

@@ -6,7 +6,7 @@ use pinmap_core::{Assignment, Origin, Resolved, suggest};
 use pinmap_model::{Mux, PinId};
 use serde::Serialize;
 
-use crate::output::{Ctx, Exit, Render, dash, table};
+use crate::output::{Ctx, Exit, Render, dash, joined_or_dash, table};
 use crate::project;
 
 #[derive(Serialize)]
@@ -106,22 +106,13 @@ impl Render for PeriphShow {
             .signals
             .iter()
             .map(|s| {
-                let candidates: Vec<&str> = s.candidates.iter().map(PinId::as_str).collect();
                 vec![
                     s.signal.clone(),
                     dash(s.pin.as_ref().map(PinId::as_str)),
                     dash(s.net.as_deref()),
                     s.mux.as_ref().map_or("-".into(), Mux::to_string),
-                    if candidates.is_empty() {
-                        "-".into()
-                    } else {
-                        candidates.join(" ")
-                    },
-                    if s.config.is_empty() {
-                        "-".into()
-                    } else {
-                        s.config.join(" ")
-                    },
+                    joined_or_dash(&s.candidates, " "),
+                    joined_or_dash(&s.config, " "),
                 ]
             })
             .collect();
