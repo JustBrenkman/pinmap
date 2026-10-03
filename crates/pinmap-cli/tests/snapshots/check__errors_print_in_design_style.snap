@@ -1,0 +1,8 @@
+---
+source: crates/pinmap-cli/tests/check.rs
+expression: run.stdout
+---
+error[PM0102] SPI1.MOSI: PA6 has no function SPI1_MOSI (functions: SPI1_MISO, TIM3_CH1)
+              check/PM0102/board.pinasg.json  peripherals.SPI1.signals.MOSI
+              hint: pinmap pin list --can SPI1.MOSI
+✘ 1 error

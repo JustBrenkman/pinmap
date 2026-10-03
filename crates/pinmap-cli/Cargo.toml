@@ -11,11 +11,19 @@ keywords.workspace = true
 categories.workspace = true
 
 [dependencies]
+anyhow.workspace = true
 clap.workspace = true
 pinmap-core.workspace = true
 pinmap-emit.workspace = true
 pinmap-import.workspace = true
-pinmap-model.workspace = true
+pinmap-model = { workspace = true, features = ["schema"] }
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true
 
 [[bin]]
 name = "pinmap"

@@ -1,14 +1,31 @@
 //! The `pinmap` binary.
-//!
-//! No subcommands are implemented yet. See `docs/design.md` section 8.
+
+mod args;
+mod commands;
+mod output;
+mod project;
+
+use std::process::ExitCode;
 
 use clap::Parser;
 
-/// One source of truth for microcontroller pin assignments.
-#[derive(Parser)]
-#[command(name = "pinmap", version, about)]
-struct Cli {}
+use args::{Cli, Command};
+use output::{Ctx, Exit};
 
-fn main() {
-    Cli::parse();
+fn main() -> ExitCode {
+    let cli = Cli::parse();
+    let ctx = Ctx {
+        json: cli.json,
+        project: cli.project,
+    };
+    let result = match &cli.command {
+        Command::Check(args) => commands::check::run(&ctx, args),
+    };
+    match result {
+        Ok(exit) => exit.into(),
+        Err(err) => {
+            eprintln!("error: {err:#}");
+            Exit::Failed.into()
+        }
+    }
 }

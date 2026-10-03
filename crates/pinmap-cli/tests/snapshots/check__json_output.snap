@@ -1,0 +1,27 @@
+---
+source: crates/pinmap-cli/tests/check.rs
+expression: run.stdout
+---
+{
+  "diagnostics": [
+    {
+      "code": "PM0109",
+      "severity": "error",
+      "message": "device is ron/devices/stm32f407vg.pindef.ron, but the root uses json/devices/stm32f407vg.pindef.json",
+      "file": "check/PM0109/other.pinasg.json",
+      "path": "device"
+    },
+    {
+      "code": "PM0109",
+      "severity": "error",
+      "message": "target is LQFP100 (U2), but the root uses LQFP100 (U1)",
+      "file": "check/PM0109/other.pinasg.json",
+      "path": "target"
+    }
+  ],
+  "summary": {
+    "errors": 2,
+    "warnings": 0,
+    "infos": 0
+  }
+}
