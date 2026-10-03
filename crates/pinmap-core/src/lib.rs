@@ -6,6 +6,10 @@
 mod diagnostic;
 mod load;
 mod paths;
+mod resolve;
 
 pub use diagnostic::{Counts, Diagnostic, Severity, sort};
 pub use load::{LoadedPinAsg, LoadedPinDef, Project, load};
+pub use resolve::{
+    Origin, Resolved, ResolvedPeriph, ResolvedPin, ResolvedSignal, Usage, open, resolve,
+};

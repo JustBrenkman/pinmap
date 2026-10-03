@@ -82,12 +82,31 @@ pub enum Bias {
     PullDown,
 }
 
+impl Bias {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Floating => "floating",
+            Self::PullUp => "pull_up",
+            Self::PullDown => "pull_down",
+        }
+    }
+}
+
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Drive {
     PushPull,
     OpenDrain,
+}
+
+impl Drive {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::PushPull => "push_pull",
+            Self::OpenDrain => "open_drain",
+        }
+    }
 }
 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -100,12 +119,32 @@ pub enum Speed {
     VeryHigh,
 }
 
+impl Speed {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Low => "low",
+            Self::Medium => "medium",
+            Self::High => "high",
+            Self::VeryHigh => "very_high",
+        }
+    }
+}
+
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Level {
     Low,
     High,
+}
+
+impl Level {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Low => "low",
+            Self::High => "high",
+        }
+    }
 }
 
 /// The role of a pin that is not carrying a peripheral signal.
@@ -118,4 +157,47 @@ pub enum Mode {
     Analog,
     /// No GPIO role (SWD and similar), listed so the pin does not show as free.
     Reserved,
+}
+
+impl Mode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::GpioIn => "gpio_in",
+            Self::GpioOut => "gpio_out",
+            Self::Analog => "analog",
+            Self::Reserved => "reserved",
+        }
+    }
+}
+
+#[cfg(all(test, feature = "json"))]
+mod tests {
+    use super::*;
+
+    fn serde_name<T: Serialize>(value: T) -> String {
+        serde_json::to_value(value)
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_owned()
+    }
+
+    #[test]
+    fn as_str_matches_serde_names() {
+        for v in [Bias::Floating, Bias::PullUp, Bias::PullDown] {
+            assert_eq!(v.as_str(), serde_name(v));
+        }
+        for v in [Drive::PushPull, Drive::OpenDrain] {
+            assert_eq!(v.as_str(), serde_name(v));
+        }
+        for v in [Speed::Low, Speed::Medium, Speed::High, Speed::VeryHigh] {
+            assert_eq!(v.as_str(), serde_name(v));
+        }
+        for v in [Level::Low, Level::High] {
+            assert_eq!(v.as_str(), serde_name(v));
+        }
+        for v in [Mode::GpioIn, Mode::GpioOut, Mode::Analog, Mode::Reserved] {
+            assert_eq!(v.as_str(), serde_name(v));
+        }
+    }
 }
