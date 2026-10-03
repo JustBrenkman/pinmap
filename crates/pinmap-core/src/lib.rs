@@ -6,6 +6,7 @@
 mod diagnostic;
 mod discover;
 mod edit;
+mod emit;
 mod load;
 mod resolve;
 mod rules;
@@ -16,6 +17,9 @@ pub use discover::{DiscoverError, discover_root};
 pub use edit::{
     EditError, EditOptions, EditOutcome, FileChange, PinChange, Removed, Session, SignalConfig,
     SignalSpec,
+};
+pub use emit::{
+    EmitError, EmitOptions, EmitOutput, Emitter, OptionSpec, OutputFile, bool_option, check_options,
 };
 pub use load::{LoadedPinAsg, LoadedPinDef, Project, load};
 pub use resolve::{
