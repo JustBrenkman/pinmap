@@ -24,6 +24,7 @@ fn main() -> ExitCode {
         Command::Pin(PinCommand::Show { pin }) => commands::pin::show(&ctx, pin),
         Command::Periph(PeriphCommand::List) => commands::periph::list(&ctx),
         Command::Periph(PeriphCommand::Show { periph }) => commands::periph::show(&ctx, periph),
+        Command::Convert(args) => commands::convert::run(&ctx, args),
     };
     match result {
         Ok(exit) => exit.into(),

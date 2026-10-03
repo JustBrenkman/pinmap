@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
+use pinmap_model::{DocKind, Format};
 
 /// One source of truth for microcontroller pin assignments.
 #[derive(Parser)]
@@ -28,6 +29,8 @@ pub enum Command {
     /// Inspect peripherals.
     #[command(subcommand)]
     Periph(PeriphCommand),
+    /// Convert a document between JSON and RON.
+    Convert(ConvertArgs),
 }
 
 #[derive(Args)]
@@ -73,4 +76,57 @@ pub enum PeriphCommand {
         /// Peripheral name, for example SPI1.
         periph: String,
     },
+}
+
+#[derive(Args)]
+pub struct ConvertArgs {
+    /// Input file, or `-` for stdin.
+    pub input: PathBuf,
+    /// Output file. Omit when reading stdin; the result goes to stdout.
+    pub output: Option<PathBuf>,
+    /// Delete the input after a successful conversion.
+    #[arg(long)]
+    pub rm_source: bool,
+    /// Overwrite the output if it exists.
+    #[arg(long)]
+    pub force: bool,
+    /// Document kind, when reading stdin.
+    #[arg(long)]
+    pub kind: Option<KindArg>,
+    /// Input format, when reading stdin.
+    #[arg(long)]
+    pub from: Option<FormatArg>,
+    /// Output format, when reading stdin.
+    #[arg(long)]
+    pub to: Option<FormatArg>,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+pub enum KindArg {
+    Pindef,
+    Pinasg,
+}
+
+impl From<KindArg> for DocKind {
+    fn from(kind: KindArg) -> Self {
+        match kind {
+            KindArg::Pindef => DocKind::Pindef,
+            KindArg::Pinasg => DocKind::Pinasg,
+        }
+    }
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+pub enum FormatArg {
+    Json,
+    Ron,
+}
+
+impl From<FormatArg> for Format {
+    fn from(format: FormatArg) -> Self {
+        match format {
+            FormatArg::Json => Format::Json,
+            FormatArg::Ron => Format::Ron,
+        }
+    }
 }
