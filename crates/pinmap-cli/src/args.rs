@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use clap::builder::PossibleValuesParser;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use pinmap_model::{Bias, DocKind, Drive, Format, Level, Mode, Speed};
 
@@ -50,6 +51,8 @@ pub enum Command {
     Prop(PropCommand),
     /// Set or clear a note on a pin entry or a peripheral.
     Note(NoteArgs),
+    /// Generate output, such as a pinout document, from the project.
+    Emit(EmitArgs),
 }
 
 #[derive(Args)]
@@ -279,4 +282,34 @@ pub struct NoteArgs {
     pub clear: bool,
     #[command(flatten)]
     pub edit: EditFlags,
+}
+
+#[derive(Args)]
+pub struct EmitArgs {
+    /// The emitter to run (`pinmap list emitters` shows them).
+    #[arg(long, value_parser = PossibleValuesParser::new(emitter_ids()))]
+    pub to: String,
+    /// Write the output file here instead of printing it.
+    #[arg(short = 'o', long, value_name = "FILE", conflicts_with = "out_dir")]
+    pub output: Option<PathBuf>,
+    /// Write every output file into this directory.
+    #[arg(long, value_name = "DIR")]
+    pub out_dir: Option<PathBuf>,
+    /// An emitter option, for example -O free-pins=true.
+    #[arg(short = 'O', value_name = "KEY=VALUE", value_parser = parse_option)]
+    pub options: Vec<(String, String)>,
+    /// Emit even if the project has errors.
+    #[arg(long)]
+    pub allow_errors: bool,
+}
+
+fn emitter_ids() -> Vec<&'static str> {
+    pinmap_emit::all().iter().map(|e| e.id()).collect()
+}
+
+fn parse_option(text: &str) -> Result<(String, String), String> {
+    text.split_once('=')
+        .filter(|(key, _)| !key.is_empty())
+        .map(|(key, value)| (key.to_owned(), value.to_owned()))
+        .ok_or_else(|| format!("expected KEY=VALUE, got {text}"))
 }

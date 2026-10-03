@@ -32,6 +32,7 @@ fn main() -> ExitCode {
         Command::Unassign { name, edit } => commands::edit::unassign(&ctx, name, edit),
         Command::Prop(command) => commands::edit::prop(&ctx, command),
         Command::Note(args) => commands::edit::note(&ctx, args),
+        Command::Emit(args) => commands::emit::run(&ctx, args),
     };
     match result {
         Ok(exit) => exit.into(),
