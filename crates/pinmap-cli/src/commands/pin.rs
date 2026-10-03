@@ -105,16 +105,10 @@ pub fn list(ctx: &Ctx, args: &PinListArgs) -> anyhow::Result<Exit> {
             continue;
         }
         let mux = match can {
-            Some((periph, signal)) => {
-                match pin
-                    .functions
-                    .iter()
-                    .find(|f| f.periph == periph && f.name == signal)
-                {
-                    Some(function) => Some(function.mux.clone()),
-                    None => continue,
-                }
-            }
+            Some((periph, signal)) => match pin.function(periph, signal) {
+                Some(function) => Some(function.mux.clone()),
+                None => continue,
+            },
             None => None,
         };
         pins.push(PinRow {

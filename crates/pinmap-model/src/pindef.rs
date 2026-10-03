@@ -60,6 +60,15 @@ pub struct Port {
     pub index: u8,
 }
 
+impl Pin {
+    /// The function `periph.name` on this pin, if it has one.
+    pub fn function(&self, periph: &str, name: &str) -> Option<&Function> {
+        self.functions
+            .iter()
+            .find(|f| f.periph == periph && f.name == name)
+    }
+}
+
 /// One thing a pin can do. Importers split the vendor's signal string into
 /// `periph` and `name`, for example `SPI1` and `SCK`.
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]

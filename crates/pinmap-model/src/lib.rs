@@ -39,7 +39,7 @@ pub use io::{
     write_atomic,
 };
 pub use kind::{DocKind, Format, classify};
-pub use paths::normalize_path;
+pub use paths::{normalize_path, same_file};
 pub use pinasg::{PeriphAsg, PinAsg, PinAsgEntry, SignalAsg, Target};
 pub use pindef::{Device, Function, Meta, Mux, Pin, PinDef, Port};
 pub use reference::resolve_ref;

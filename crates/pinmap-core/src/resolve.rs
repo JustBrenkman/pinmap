@@ -139,12 +139,10 @@ impl Resolved {
         periph: &'a str,
         signal: &'a str,
     ) -> impl Iterator<Item = (&'a PinId, &'a Function)> + 'a {
-        self.pindef.pins.iter().flat_map(move |(id, pin)| {
-            pin.functions
-                .iter()
-                .filter(move |f| f.periph == periph && f.name == signal)
-                .map(move |f| (id, f))
-        })
+        self.pindef
+            .pins
+            .iter()
+            .filter_map(move |(id, pin)| Some((id, pin.function(periph, signal)?)))
     }
 }
 
@@ -255,11 +253,7 @@ fn index(r: &mut Resolved) {
                 .pindef
                 .pins
                 .get(&s.asg.pin)
-                .and_then(|pin| {
-                    pin.functions
-                        .iter()
-                        .find(|f| f.periph == *periph && f.name == *signal)
-                })
+                .and_then(|pin| pin.function(periph, signal))
                 .map(|f| f.mux.clone());
             let usage = Usage::Signal {
                 periph: periph.clone(),

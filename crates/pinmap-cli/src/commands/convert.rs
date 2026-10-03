@@ -3,7 +3,7 @@ use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, anyhow, bail};
-use pinmap_model::{AnyDoc, classify, has_comments};
+use pinmap_model::{AnyDoc, classify, has_comments, same_file};
 use serde::Serialize;
 
 use crate::args::ConvertArgs;
@@ -88,10 +88,6 @@ fn from_stdin(args: &ConvertArgs) -> anyhow::Result<Exit> {
     let doc = AnyDoc::from_str(&text, kind.into(), from.into())?;
     print!("{}", doc.to_string(to.into())?);
     Ok(Exit::Ok)
-}
-
-fn same_file(a: &Path, b: &Path) -> bool {
-    a == b || matches!((fs::canonicalize(a), fs::canonicalize(b)), (Ok(x), Ok(y)) if x == y)
 }
 
 /// The path without its `.<kind>.<format>` ending.

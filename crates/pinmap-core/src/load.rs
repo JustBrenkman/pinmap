@@ -3,7 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use pinmap_model::{
-    DocKind, ModelError, PinAsg, PinDef, Target, normalize_path, read_from, resolve_ref,
+    DocKind, ModelError, PinAsg, PinDef, Target, normalize_path, read_from, resolve_ref, same_file,
 };
 
 use crate::Diagnostic;
@@ -200,13 +200,6 @@ fn reference_error(err: &ModelError, file: &Path, at: String) -> Diagnostic {
     Diagnostic::error(err.code(), err.to_string())
         .in_file(file)
         .at_path(at)
-}
-
-fn same_file(a: &Path, b: &Path) -> bool {
-    match (fs::canonicalize(a), fs::canonicalize(b)) {
-        (Ok(a), Ok(b)) => a == b,
-        _ => a == b,
-    }
 }
 
 fn describe(target: &Target) -> String {

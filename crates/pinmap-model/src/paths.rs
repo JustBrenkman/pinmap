@@ -1,3 +1,4 @@
+use std::fs;
 use std::path::{Component, Path, PathBuf};
 
 /// Removes `.` and folds `..` into the previous component, without touching
@@ -21,6 +22,15 @@ pub fn normalize_path(path: &Path) -> PathBuf {
         out.push(".");
     }
     out
+}
+
+/// Whether two paths name the same file: compares canonical paths when both
+/// exist, the paths themselves otherwise.
+pub fn same_file(a: &Path, b: &Path) -> bool {
+    match (fs::canonicalize(a), fs::canonicalize(b)) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => a == b,
+    }
 }
 
 #[cfg(test)]
