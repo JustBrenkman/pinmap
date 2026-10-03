@@ -26,6 +26,7 @@ fn main() -> ExitCode {
         Command::Periph(PeriphCommand::Show { periph }) => commands::periph::show(&ctx, periph),
         Command::Convert(args) => commands::convert::run(&ctx, args),
         Command::Fmt(args) => commands::fmt::run(&ctx, args),
+        Command::Schema { kind } => commands::schema::run(*kind),
     };
     match result {
         Ok(exit) => exit.into(),

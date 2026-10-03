@@ -33,6 +33,8 @@ pub enum Command {
     Convert(ConvertArgs),
     /// Rewrite documents in canonical form.
     Fmt(FmtArgs),
+    /// Print the JSON Schema for a document kind.
+    Schema { kind: KindArg },
 }
 
 #[derive(Args)]
