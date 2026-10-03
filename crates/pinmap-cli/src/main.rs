@@ -9,7 +9,7 @@ use std::process::ExitCode;
 
 use clap::Parser;
 
-use args::{Cli, Command, PeriphCommand, PinCommand};
+use args::{AssignCommand, Cli, Command, PeriphCommand, PinCommand};
 use output::{Ctx, Exit};
 
 fn main() -> ExitCode {
@@ -27,6 +27,7 @@ fn main() -> ExitCode {
         Command::Convert(args) => commands::convert::run(&ctx, args),
         Command::Fmt(args) => commands::fmt::run(&ctx, args),
         Command::Schema { kind } => commands::schema::run(*kind),
+        Command::Assign(AssignCommand::Periph(args)) => commands::edit::assign_periph(&ctx, args),
     };
     match result {
         Ok(exit) => exit.into(),

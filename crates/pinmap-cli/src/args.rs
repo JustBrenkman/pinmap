@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use pinmap_model::{DocKind, Format};
+use pinmap_model::{Bias, DocKind, Drive, Format, Speed};
 
 /// One source of truth for microcontroller pin assignments.
 #[derive(Parser)]
@@ -35,6 +35,9 @@ pub enum Command {
     Fmt(FmtArgs),
     /// Print the JSON Schema for a document kind.
     Schema { kind: KindArg },
+    /// Assign peripheral signals or pins.
+    #[command(subcommand)]
+    Assign(AssignCommand),
 }
 
 #[derive(Args)]
@@ -143,4 +146,68 @@ pub struct FmtArgs {
     pub check: bool,
     /// Files to format. Defaults to the project's files and its pindef.
     pub paths: Vec<PathBuf>,
+}
+
+/// A clap value enum mirroring a model enum, with kebab-case names.
+macro_rules! value_enum {
+    ($arg:ident => $model:ident { $($variant:ident),+ $(,)? }) => {
+        #[derive(Clone, Copy, ValueEnum)]
+        pub enum $arg {
+            $($variant),+
+        }
+
+        impl From<$arg> for $model {
+            fn from(value: $arg) -> Self {
+                match value {
+                    $($arg::$variant => $model::$variant),+
+                }
+            }
+        }
+    };
+}
+
+value_enum!(BiasArg => Bias { Floating, PullUp, PullDown });
+value_enum!(DriveArg => Drive { PushPull, OpenDrain });
+value_enum!(SpeedArg => Speed { Low, Medium, High, VeryHigh });
+
+#[derive(Args)]
+pub struct EditFlags {
+    /// Show the change as a diff without writing.
+    #[arg(long)]
+    pub dry_run: bool,
+    /// Write even if the edit adds errors.
+    #[arg(long)]
+    pub allow_errors: bool,
+    /// Rewrite RON files even if that drops their comments.
+    #[arg(long)]
+    pub allow_comment_loss: bool,
+    /// The project file that receives new entries. Defaults to the root.
+    #[arg(long, value_name = "FILE")]
+    pub file: Option<PathBuf>,
+}
+
+#[derive(Subcommand)]
+pub enum AssignCommand {
+    /// Assign peripheral signals to pins.
+    Periph(AssignPeriphArgs),
+}
+
+#[derive(Args)]
+pub struct AssignPeriphArgs {
+    /// Peripheral name, for example SPI1.
+    pub periph: String,
+    /// Signals to assign.
+    #[arg(required = true, value_name = "SIGNAL=PIN[:NET]")]
+    pub signals: Vec<String>,
+    /// Pull resistor for the listed signals.
+    #[arg(long)]
+    pub bias: Option<BiasArg>,
+    /// Output driver for the listed signals.
+    #[arg(long)]
+    pub drive: Option<DriveArg>,
+    /// Slew rate for the listed signals.
+    #[arg(long)]
+    pub speed: Option<SpeedArg>,
+    #[command(flatten)]
+    pub edit: EditFlags,
 }

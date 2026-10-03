@@ -1,0 +1,23 @@
+---
+source: crates/pinmap-cli/tests/edit.rs
+expression: r.stdout
+---
+--- board/board.pinasg.json
++++ board/board.pinasg.json
+@@ -5,5 +5,15 @@
+   "target": {
+     "package": "LQFP100",
+     "refdes": "U1"
++  },
++  "peripherals": {
++    "SPI1": {
++      "signals": {
++        "SCK": {
++          "pin": "PA5",
++          "net": "IMU_SCK"
++        }
++      }
++    }
+   }
+ }
+✔ dry run: would update 1 file

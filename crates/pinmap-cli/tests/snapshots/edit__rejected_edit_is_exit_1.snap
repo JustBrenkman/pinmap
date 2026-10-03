@@ -1,0 +1,26 @@
+---
+source: crates/pinmap-cli/tests/edit.rs
+expression: r.stdout
+---
+--- board/board.pinasg.json
++++ board/board.pinasg.json
+@@ -5,5 +5,14 @@
+   "target": {
+     "package": "LQFP100",
+     "refdes": "U1"
++  },
++  "peripherals": {
++    "SPI1": {
++      "signals": {
++        "MOSI": {
++          "pin": "PA6"
++        }
++      }
++    }
+   }
+ }
+new:
+error[PM0102] SPI1.MOSI: PA6 has no function SPI1_MOSI (functions: SPI1_MISO, TIM3_CH1)
+              board/board.pinasg.json  peripherals.SPI1.signals.MOSI
+              hint: pinmap pin list --can SPI1.MOSI
+✘ rejected: 1 new error (use --allow-errors to write anyway)
