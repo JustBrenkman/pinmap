@@ -75,21 +75,35 @@ pub fn discover_root(dir: &Path) -> Result<PathBuf, DiscoverError> {
     }
 }
 
+/// Walks the starting directory, which must be readable.
 fn walk(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), DiscoverError> {
-    let io = |source| DiscoverError::Io {
+    let entries = fs::read_dir(dir).map_err(|source| DiscoverError::Io {
         dir: dir.to_path_buf(),
         source,
-    };
-    for entry in fs::read_dir(dir).map_err(io)? {
-        let entry = entry.map_err(io)?;
+    })?;
+    visit_entries(entries, out);
+    Ok(())
+}
+
+/// Walks a subdirectory; one that cannot be read is skipped.
+fn walk_below(dir: &Path, out: &mut Vec<PathBuf>) {
+    if let Ok(entries) = fs::read_dir(dir) {
+        visit_entries(entries, out);
+    }
+}
+
+fn visit_entries(entries: fs::ReadDir, out: &mut Vec<PathBuf>) {
+    for entry in entries.flatten() {
         let path = entry.path();
         // Does not follow symlinks, so symlinked directories are not walked.
-        let kind = entry.file_type().map_err(io)?;
+        let Ok(kind) = entry.file_type() else {
+            continue;
+        };
         if kind.is_dir() {
             let name = entry.file_name();
             let name = name.to_string_lossy();
             if !name.starts_with('.') && name != "target" {
-                walk(&path, out)?;
+                walk_below(&path, out);
             }
         } else if (kind.is_file() || (kind.is_symlink() && path.is_file()))
             && matches!(classify(&path), Ok((DocKind::Pinasg, _)))
@@ -97,5 +111,4 @@ fn walk(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), DiscoverError> {
             out.push(path);
         }
     }
-    Ok(())
 }

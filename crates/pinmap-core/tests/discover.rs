@@ -114,3 +114,20 @@ fn relative_start_gives_clean_relative_paths() {
     );
     assert!(!root.to_string_lossy().contains(".."), "{}", root.display());
 }
+
+#[cfg(unix)]
+#[test]
+fn unreadable_subdirectories_are_skipped() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = project(&[("main.pinasg.json", pinasg(&[]))]);
+    let locked = dir.path().join("locked");
+    fs::create_dir(&locked).unwrap();
+    fs::set_permissions(&locked, fs::Permissions::from_mode(0o000)).unwrap();
+    if fs::read_dir(&locked).is_ok() {
+        return; // running as root: permissions are not enforced
+    }
+    let result = discover_root(dir.path());
+    fs::set_permissions(&locked, fs::Permissions::from_mode(0o755)).unwrap();
+    let root = result.unwrap();
+    assert_eq!(relative(&dir, &[root]), [Path::new("main.pinasg.json")]);
+}
