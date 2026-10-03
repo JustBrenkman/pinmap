@@ -2,9 +2,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use pinmap_model::{DocKind, PinAsg, classify, read, resolve_ref};
-
-use crate::paths::normalize;
+use pinmap_model::{DocKind, PinAsg, classify, normalize_path, read, resolve_ref};
 
 #[derive(Debug, thiserror::Error)]
 pub enum DiscoverError {
@@ -66,7 +64,7 @@ pub fn discover_root(dir: &Path) -> Result<PathBuf, DiscoverError> {
     let mut roots: Vec<PathBuf> = candidates
         .into_iter()
         .filter(|c| fs::canonicalize(c).map_or(true, |key| !imported.contains(&key)))
-        .map(|c| normalize(&c))
+        .map(|c| normalize_path(&c))
         .collect();
     match roots.len() {
         0 => Err(DiscoverError::AllImported {

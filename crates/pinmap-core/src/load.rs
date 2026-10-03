@@ -2,10 +2,11 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use pinmap_model::{DocKind, ModelError, PinAsg, PinDef, Target, read, resolve_ref};
+use pinmap_model::{
+    DocKind, ModelError, PinAsg, PinDef, Target, normalize_path, read, resolve_ref,
+};
 
 use crate::Diagnostic;
-use crate::paths::normalize;
 
 #[derive(Debug, Clone)]
 pub struct LoadedPinDef {
@@ -32,7 +33,7 @@ pub struct Project {
 /// Loads a root pinasg, its pindef, and its imports. Problems become
 /// diagnostics, and loading carries on with whatever could be read.
 pub fn load(root: &Path) -> (Project, Vec<Diagnostic>) {
-    let root = normalize(root);
+    let root = normalize_path(root);
     let mut loader = Loader::default();
     loader.visit(&root, None);
     let project = Project {
@@ -95,7 +96,7 @@ impl Loader {
         let dir = path.parent().unwrap_or(Path::new("")).to_path_buf();
 
         let device = match resolve_ref(&dir, &doc.device, DocKind::Pindef) {
-            Ok(found) => Some(normalize(&found)),
+            Ok(found) => Some(normalize_path(&found)),
             Err(err) => {
                 self.diagnostics
                     .push(reference_error(&err, path, "device".into()));
@@ -126,7 +127,7 @@ impl Loader {
         for (i, import) in imports.iter().enumerate() {
             let at = format!("imports[{i}]");
             match resolve_ref(&dir, import, DocKind::Pinasg) {
-                Ok(found) => self.visit(&normalize(&found), Some((path, at))),
+                Ok(found) => self.visit(&normalize_path(&found), Some((path, at))),
                 Err(err) => self.diagnostics.push(reference_error(&err, path, at)),
             }
         }

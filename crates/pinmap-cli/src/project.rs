@@ -8,7 +8,11 @@ use crate::output::{Ctx, render_diagnostic};
 /// The root pinasg: `--project`, or the one found under the current directory.
 pub fn root(ctx: &Ctx) -> anyhow::Result<PathBuf> {
     match &ctx.project {
-        Some(path) => Ok(path.clone()),
+        Some(path) if path.is_file() => Ok(path.clone()),
+        Some(path) => bail!(
+            "{} is not a file; --project takes a .pinasg.json or .pinasg.ron file",
+            path.display()
+        ),
         None => discover_root(Path::new(".")).context("cannot find the project"),
     }
 }

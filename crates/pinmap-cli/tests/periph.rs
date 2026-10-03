@@ -48,3 +48,16 @@ fn periph_show_suggests_case() {
     assert_eq!(run.code, 2);
     assert!(run.stderr.contains("did you mean SPI1?"), "{}", run.stderr);
 }
+
+#[test]
+fn periph_show_suggests_near_typos() {
+    let run = pinmap(&fixtures().join("json"), &["periph", "show", "SPl1"]);
+    assert_eq!(run.code, 2);
+    assert!(run.stderr.contains("did you mean SPI1?"), "{}", run.stderr);
+}
+
+#[test]
+fn periph_show_includes_signal_config() {
+    let run = pinmap(&fixtures().join("json"), &["periph", "show", "SPI1"]);
+    assert!(run.stdout.contains("speed=very_high"), "{}", run.stdout);
+}

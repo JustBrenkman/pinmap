@@ -75,3 +75,13 @@ fn missing_device_fails_check() {
     assert_eq!(run.code, 1);
     assert!(run.stdout.contains("error[PM0005]"), "{}", run.stdout);
 }
+
+#[test]
+fn missing_project_file_is_exit_2() {
+    let run = pinmap(&fixtures(), &["--project", "nope.pinasg.json", "check"]);
+    assert_eq!(run.code, 2, "{}{}", run.stdout, run.stderr);
+    assert!(run.stderr.contains("nope.pinasg.json"), "{}", run.stderr);
+    let run = pinmap(&fixtures(), &["--project", "json", "pin", "list"]);
+    assert_eq!(run.code, 2);
+    assert!(run.stderr.contains("not a file"), "{}", run.stderr);
+}

@@ -1,8 +1,8 @@
 use std::path::{Component, Path, PathBuf};
 
 /// Removes `.` and folds `..` into the previous component, without touching
-/// the file system. For display only: compare files by canonical path.
-pub(crate) fn normalize(path: &Path) -> PathBuf {
+/// the file system. Meant for showing paths: compare files by canonical path.
+pub fn normalize_path(path: &Path) -> PathBuf {
     let mut out = PathBuf::new();
     for component in path.components() {
         match component {
@@ -38,7 +38,11 @@ mod tests {
             ("a/..", "."),
         ];
         for (input, expected) in cases {
-            assert_eq!(normalize(Path::new(input)), Path::new(expected), "{input}");
+            assert_eq!(
+                normalize_path(Path::new(input)),
+                Path::new(expected),
+                "{input}"
+            );
         }
     }
 }

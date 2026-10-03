@@ -3,10 +3,10 @@ use std::fmt::Write as _;
 use anyhow::bail;
 use indexmap::{IndexMap, IndexSet};
 use pinmap_core::{Origin, Resolved};
-use pinmap_model::{Mux, PinId};
+use pinmap_model::{Bias, Drive, Mux, PinId, Speed};
 use serde::Serialize;
 
-use crate::output::{Ctx, Exit, Render, dash, mux_text, table};
+use crate::output::{Ctx, Exit, Render, config, dash, mux_text, suggest, table};
 use crate::project;
 
 #[derive(Serialize)]
@@ -71,6 +71,7 @@ pub struct SignalRow {
     pub net: Option<String>,
     pub mux: Option<Mux>,
     pub candidates: Vec<PinId>,
+    pub config: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -116,10 +117,19 @@ impl Render for PeriphShow {
                     } else {
                         candidates.join(" ")
                     },
+                    if s.config.is_empty() {
+                        "-".into()
+                    } else {
+                        s.config.join(" ")
+                    },
                 ]
             })
             .collect();
-        table(out, &["SIGNAL", "PIN", "NET", "MUX", "CANDIDATES"], &rows);
+        table(
+            out,
+            &["SIGNAL", "PIN", "NET", "MUX", "CANDIDATES", "CONFIG"],
+            &rows,
+        );
         if !self.props.is_empty() {
             out.push_str("\nprops\n");
             for (key, value) in &self.props {
@@ -133,7 +143,7 @@ pub fn show(ctx: &Ctx, name: &str) -> anyhow::Result<Exit> {
     let r = project::load_resolved(ctx)?;
     let known = all_peripherals(&r);
     if !known.contains(name) {
-        match known.iter().find(|p| p.eq_ignore_ascii_case(name)) {
+        match suggest(name, known.iter().copied()) {
             Some(p) => bail!("unknown peripheral {name}; did you mean {p}?"),
             None => bail!("unknown peripheral {name}; run `pinmap periph list` to see them all"),
         }
@@ -163,6 +173,15 @@ pub fn show(ctx: &Ctx, name: &str) -> anyhow::Result<Exit> {
                     .pins_with_function(name, signal)
                     .map(|(id, _)| id.clone())
                     .collect(),
+                config: resolved
+                    .map(|s| {
+                        config([
+                            ("bias", s.asg.bias.map(Bias::as_str)),
+                            ("drive", s.asg.drive.map(Drive::as_str)),
+                            ("speed", s.asg.speed.map(Speed::as_str)),
+                        ])
+                    })
+                    .unwrap_or_default(),
             }
         })
         .collect();

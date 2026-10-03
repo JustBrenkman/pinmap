@@ -1,7 +1,7 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-use crate::{DocKind, Format, ModelError, classify};
+use crate::{DocKind, Format, ModelError, classify, normalize_path};
 
 /// Probe order for stems. Finding both is an error, so the order only decides
 /// how candidates are listed.
@@ -35,7 +35,7 @@ pub fn resolve_ref(
         } else {
             Err(ModelError::RefNotFound {
                 reference: reference.to_path_buf(),
-                tried: vec![path],
+                tried: vec![normalize_path(&path)],
             })
         };
     }
@@ -48,13 +48,13 @@ pub fn resolve_ref(
     match (ron.is_file(), json.is_file()) {
         (true, true) => Err(ModelError::AmbiguousRef {
             reference: reference.to_path_buf(),
-            candidates: [ron, json],
+            candidates: [normalize_path(&ron), normalize_path(&json)],
         }),
         (true, false) => Ok(ron),
         (false, true) => Ok(json),
         (false, false) => Err(ModelError::RefNotFound {
             reference: reference.to_path_buf(),
-            tried: vec![ron, json],
+            tried: vec![normalize_path(&ron), normalize_path(&json)],
         }),
     }
 }

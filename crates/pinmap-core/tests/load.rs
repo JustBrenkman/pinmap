@@ -130,3 +130,26 @@ fn missing_import_and_device_are_reported_where_referenced() {
     assert!(project.device.is_none());
     assert_eq!(project.files.len(), 1);
 }
+
+#[test]
+fn reference_errors_show_normalized_paths() {
+    let dir = tempfile::tempdir().unwrap();
+    let board = dir.path().join("board");
+    fs::create_dir(&board).unwrap();
+    fs::write(
+        board.join("main.pinasg.json"),
+        r#"{"schema": "pinmap/v1", "kind": "pinasg", "device": "../devices/chip",
+            "target": {"package": "P"}}"#,
+    )
+    .unwrap();
+    let (_, diags) = load(&board.join("main.pinasg.json"));
+    assert_eq!(diags[0].code, "PM0005");
+    assert!(
+        diags[0].message.contains("devices/chip.pindef.ron"),
+        "{}",
+        diags[0].message
+    );
+    // The reference is echoed as written; the paths pinmap built are clean.
+    let (_, tried) = diags[0].message.split_once("looked for").unwrap();
+    assert!(!tried.contains(".."), "{}", diags[0].message);
+}

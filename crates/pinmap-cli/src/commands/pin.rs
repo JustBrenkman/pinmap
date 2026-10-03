@@ -6,7 +6,7 @@ use pinmap_model::{Bias, Drive, Level, Mux, Pin, PinId, Port, Speed};
 use serde::Serialize;
 
 use crate::args::PinListArgs;
-use crate::output::{Ctx, Exit, Render, dash, mux_text, table};
+use crate::output::{Ctx, Exit, Render, config, dash, mux_text, suggest, table};
 use crate::project;
 
 #[derive(Serialize)]
@@ -215,12 +215,7 @@ fn find_pin<'a>(r: &'a Resolved, name: &str) -> anyhow::Result<(&'a PinId, &'a P
     if let Some(found) = r.pindef.pins.get_key_value(name) {
         return Ok(found);
     }
-    match r
-        .pindef
-        .pins
-        .keys()
-        .find(|id| id.as_str().eq_ignore_ascii_case(name))
-    {
+    match suggest(name, r.pindef.pins.keys().map(PinId::as_str)) {
         Some(id) => bail!("unknown pin {name}; did you mean {id}?"),
         None => bail!("unknown pin {name}; run `pinmap pin list` to see every pin"),
     }
@@ -258,11 +253,4 @@ fn use_detail(r: &Resolved, pin: &PinId, usage: &Usage) -> UseDetail {
             }
         }
     }
-}
-
-fn config<const N: usize>(items: [(&str, Option<&str>); N]) -> Vec<String> {
-    items
-        .into_iter()
-        .filter_map(|(key, value)| value.map(|v| format!("{key}={v}")))
-        .collect()
 }

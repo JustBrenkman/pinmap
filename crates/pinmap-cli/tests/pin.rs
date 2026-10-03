@@ -117,3 +117,10 @@ fn pin_list_without_device_is_exit_2() {
         run.stderr
     );
 }
+
+#[test]
+fn pin_show_suggests_near_typos() {
+    let run = pinmap(&fixtures().join("json"), &["pin", "show", "PA55"]);
+    assert_eq!(run.code, 2);
+    assert!(run.stderr.contains("did you mean PA5?"), "{}", run.stderr);
+}

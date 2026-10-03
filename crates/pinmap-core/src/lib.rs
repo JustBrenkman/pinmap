@@ -6,7 +6,6 @@
 mod diagnostic;
 mod discover;
 mod load;
-mod paths;
 mod resolve;
 mod rules;
 
